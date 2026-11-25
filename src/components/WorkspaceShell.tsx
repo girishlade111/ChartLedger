@@ -1,0 +1,499 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  BarChart3,
+  BookOpen,
+  CreditCard,
+  Eye,
+  FilePlus2,
+  HelpCircle,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Moon,
+  Settings,
+  Shield,
+  Sparkles,
+  Star,
+  Sun,
+  X,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
+import { NewAnalysisView } from './workspace/NewAnalysisView';
+import { ResearchChatView } from './workspace/ResearchChatView';
+import { KnowledgeBaseView, SavedPromptsView } from './workspace/KnowledgeAndPromptsView';
+import { AnalysisHistoryView, WatchlistView } from './workspace/HistoryAndWatchlistView';
+import {
+  AdminDashboardView,
+  BillingAndWidgetsView,
+  SettingsView,
+} from './workspace/BillingSettingsAdminView';
+
+export type WorkspaceSection =
+  | 'overview'
+  | 'new-analysis'
+  | 'chat'
+  | 'history'
+  | 'saved'
+  | 'watchlist'
+  | 'knowledge'
+  | 'prompts'
+  | 'billing'
+  | 'settings'
+  | 'help'
+  | 'admin';
+
+interface WorkspaceShellProps {
+  onGoPublicHome: () => void;
+}
+
+export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
+  const { user, theme, toggleTheme, logout } = useAuth();
+  const [section, setSection] = useState<WorkspaceSection>('overview');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [analyses, setAnalyses] = useState<any[]>([]);
+  const [prompts, setPrompts] = useState<any[]>([]);
+  const [billingSummary, setBillingSummary] = useState<any>(null);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState('gemini-4-hydrogen');
+
+  const [chatAnalysisId, setChatAnalysisId] = useState<string | null>(null);
+  const [chatInitialPrompt, setChatInitialPrompt] = useState<string | null>(null);
+  const [analyzeSymbol, setAnalyzeSymbol] = useState<string | undefined>(undefined);
+
+  const loadWorkspaceData = useCallback(async () => {
+    try {
+      const [aRes, pRes, bRes, provRes] = await Promise.all([
+        apiFetch<{ analyses: any[] }>('/api/analyses'),
+        apiFetch<{ prompts: any[] }>('/api/prompts'),
+        apiFetch('/api/billing/subscription'),
+        apiFetch<{ providers: any[] }>('/api/providers'),
+      ]);
+      setAnalyses(aRes.analyses);
+      setPrompts(pRes.prompts);
+      setBillingSummary(bRes);
+      setProviders(provRes.providers);
+    } catch (err) {
+      console.error('Workspace load error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadWorkspaceData();
+  }, [loadWorkspaceData]);
+
+  const handleOpenChat = (analysisId: string, prompt?: string) => {
+    setChatAnalysisId(analysisId);
+    setChatInitialPrompt(prompt || null);
+    setSection('chat');
+  };
+
+  const navItems: Array<{ id: WorkspaceSection; label: string; icon: any; adminOnly?: boolean }> = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'new-analysis', label: 'New Analysis', icon: FilePlus2 },
+    { id: 'chat', label: 'AI Research Chat', icon: MessageSquare },
+    { id: 'history', label: 'Analysis History', icon: History },
+    { id: 'saved', label: 'Saved Analyses', icon: Star },
+    { id: 'watchlist', label: 'Watchlist', icon: Eye },
+    { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
+    { id: 'prompts', label: 'Saved Prompts', icon: Sparkles },
+    { id: 'billing', label: 'Usage & Billing', icon: CreditCard },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help & Methodology', icon: HelpCircle },
+    { id: 'admin', label: 'Admin Console', icon: Shield, adminOnly: true },
+  ];
+
+  const activeNav = navItems.find((n) => n.id === section);
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={onGoPublicHome}
+            className="font-display text-base font-bold tracking-tight text-zinc-950 dark:text-zinc-50"
+          >
+            ChartLedger
+          </button>
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <nav aria-label="Workspace navigation" className="space-y-0.5 p-3">
+          {navItems
+            .filter((item) => !item.adminOnly || user?.role === 'admin')
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = section === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSection(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
+                    isActive
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+        </nav>
+      </div>
+
+      <div className="border-t border-zinc-200 p-4 text-xs dark:border-zinc-800">
+        <div className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+          {user?.displayName}
+        </div>
+        <div className="truncate text-[11px] text-zinc-500">{user?.email}</div>
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-zinc-50 text-zinc-950 dark:bg-[#09090B] dark:text-[#FAFAFA]">
+      {/* Desktop Sidebar */}
+      <aside className="hidden w-60 shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0E0E11] lg:block">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <div className="w-64 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0E0E11]">
+            {sidebarContent}
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss menu backdrop"
+            className="flex-1 bg-black/50"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Main Content Shell */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-zinc-200 bg-white/95 px-5 py-3.5 backdrop-blur dark:border-zinc-800 dark:bg-[#09090B]/95">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Open navigation menu"
+              onClick={() => setMobileMenuOpen(true)}
+              className="rounded-md border border-zinc-300 p-1.5 dark:border-zinc-700 lg:hidden"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <h1 className="font-display text-base font-semibold tracking-tight">
+              {activeNav?.label || 'Workspace'}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <select
+              aria-label="Select AI model"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="hidden rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 font-mono text-[11px] dark:border-zinc-800 dark:bg-[#111114] sm:block"
+            >
+              {providers.length > 0 ? (
+                providers.map((p) => (
+                  <option key={p.id} value={p.model}>
+                    {p.name} ({p.model})
+                  </option>
+                ))
+              ) : (
+                <option value="gemini-4-hydrogen">Google Gemini (gemini-4-hydrogen)</option>
+              )}
+            </select>
+
+            {billingSummary && (
+              <button
+                type="button"
+                onClick={() => setSection('billing')}
+                className="hidden whitespace-nowrap font-mono text-[11px] tabular-nums text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 md:inline"
+              >
+                {billingSummary.plan.name} · {billingSummary.usage.analysesCount}/
+                {billingSummary.plan.analysesLimit} charts
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle color theme"
+              className="rounded-lg border border-zinc-200 p-2 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Workspace Viewport */}
+        <main className="mx-auto w-full max-w-6xl flex-1 p-5 lg:p-8">
+          {section === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                  <div className="text-xs text-zinc-500">Analyses This Month</div>
+                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                    {billingSummary?.usage.analysesCount ?? analyses.length}
+                    <span className="text-xs font-normal text-zinc-500">
+                      {' '}
+                      / {billingSummary?.plan.analysesLimit ?? 15}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                  <div className="text-xs text-zinc-500">AI Chat Messages</div>
+                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                    {billingSummary?.usage.messagesCount ?? 0}
+                    <span className="text-xs font-normal text-zinc-500">
+                      {' '}
+                      / {billingSummary?.plan.messagesLimit ?? 75}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                  <div className="text-xs text-zinc-500">Saved Favorites</div>
+                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                    {analyses.filter((a) => a.isFavorite).length}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                  <div className="text-xs text-zinc-500">Indexed Knowledge Docs</div>
+                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                    {billingSummary?.usage.kbDocsCount ?? 0}
+                    <span className="text-xs font-normal text-zinc-500">
+                      {' '}
+                      / {billingSummary?.plan.kbDocsLimit ?? 5}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => setSection('new-analysis')}
+                  className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-5 text-left transition-colors hover:bg-emerald-600/15"
+                >
+                  <FilePlus2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="mt-2 font-display text-sm font-semibold">
+                    Upload Chart Screenshot
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    Run the 8-stage structured analysis pipeline with deterministic OHLCV indicators.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSection('chat')}
+                  className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
+                >
+                  <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                  <div className="mt-2 font-display text-sm font-semibold">
+                    Open Streaming Research Chat
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    Interrogate saved chart setups with private knowledge-base RAG grounding.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSection('knowledge')}
+                  className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
+                >
+                  <BookOpen className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                  <div className="mt-2 font-display text-sm font-semibold">
+                    Index Trading Playbooks
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    Add private strategy checklists and notes to cite in future chart analyses.
+                  </p>
+                </button>
+              </div>
+
+              {/* Recent Analyses */}
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="font-display text-base font-semibold">Recent Chart Analyses</h2>
+                  <button
+                    type="button"
+                    onClick={() => setSection('history')}
+                    className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                  >
+                    View all →
+                  </button>
+                </div>
+                {analyses.length === 0 ? (
+                  <div className="py-10 text-center text-xs text-zinc-500">
+                    <BarChart3 className="mx-auto mb-2 h-6 w-6 text-zinc-400" />
+                    No analyses recorded yet. Click “Upload Chart Screenshot” to run your first
+                    structured report.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                    {analyses.slice(0, 5).map((rec) => (
+                      <div
+                        key={rec.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-3 text-xs"
+                      >
+                        <div>
+                          <div className="font-medium text-zinc-950 dark:text-zinc-50">
+                            {rec.title}
+                          </div>
+                          <div className="text-[11px] text-zinc-500">
+                            {rec.symbol || 'Unspecified'} · {rec.timeframe || 'TF'} ·{' '}
+                            {new Date(rec.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`font-semibold capitalize ${
+                              rec.marketBias === 'bullish'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : rec.marketBias === 'bearish'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-amber-600 dark:text-amber-400'
+                            }`}
+                          >
+                            {rec.marketBias}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenChat(rec.id)}
+                            className="text-emerald-600 hover:underline dark:text-emerald-400"
+                          >
+                            Chat
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {section === 'new-analysis' && (
+            <NewAnalysisView
+              theme={theme}
+              initialSymbol={analyzeSymbol}
+              onAnalysisCreated={() => void loadWorkspaceData()}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+
+          {section === 'chat' && (
+            <ResearchChatView
+              analysesList={analyses}
+              promptsList={prompts}
+              initialAnalysisId={chatAnalysisId}
+              initialPromptText={chatInitialPrompt}
+              onClearInitialIntent={() => {
+                setChatAnalysisId(null);
+                setChatInitialPrompt(null);
+              }}
+            />
+          )}
+
+          {section === 'history' && (
+            <AnalysisHistoryView
+              analyses={analyses}
+              theme={theme}
+              onRefresh={loadWorkspaceData}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+
+          {section === 'saved' && (
+            <AnalysisHistoryView
+              analyses={analyses}
+              favoritesOnly
+              theme={theme}
+              onRefresh={loadWorkspaceData}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+
+          {section === 'watchlist' && (
+            <WatchlistView
+              onAnalyzeSymbol={(sym) => {
+                setAnalyzeSymbol(sym);
+                setSection('new-analysis');
+              }}
+            />
+          )}
+
+          {section === 'knowledge' && <KnowledgeBaseView />}
+
+          {section === 'prompts' && (
+            <SavedPromptsView
+              prompts={prompts}
+              onRefresh={loadWorkspaceData}
+              onUseInChat={(txt) => {
+                setChatInitialPrompt(txt);
+                setSection('chat');
+              }}
+            />
+          )}
+
+          {section === 'billing' && <BillingAndWidgetsView />}
+
+          {section === 'settings' && <SettingsView />}
+
+          {section === 'help' && (
+            <div className="max-w-3xl space-y-5 rounded-xl border border-zinc-200 bg-white p-6 text-sm leading-relaxed dark:border-zinc-800 dark:bg-[#111114]">
+              <h2 className="font-display text-lg font-bold">
+                ChartLedger Research Methodology & Safety Guide
+              </h2>
+              <p className="text-zinc-600 dark:text-zinc-400">
+                ChartLedger executes an 8-stage analytical pipeline designed to prevent AI
+                hallucinations and ungrounded price claims:
+              </p>
+              <ol className="list-decimal space-y-2 pl-5 text-xs text-zinc-700 dark:text-zinc-300">
+                <li>Image signature, MIME type, and safe dimension verification.</li>
+                <li>Multimodal visual parsing of visible price axes, candles, and annotations.</li>
+                <li>Matched OHLCV lookup (Binance public spot for crypto pairs) and deterministic server-side calculation of SMA, EMA, RSI, MACD, ATR, Bollinger Bands, Stochastic, ADX, VWAP, and Fibonacci retracements.</li>
+                <li>Chart pattern inspection with explicit confirmation and invalidation criteria.</li>
+                <li>Optional per-user isolated RAG retrieval from your private trading notes.</li>
+                <li>Conditional Bullish, Bearish, and Neutral scenario generation without arbitrary percentage probabilities.</li>
+                <li>Risk analysis highlighting volatility, whipsaw hazards, and missing higher-timeframe context.</li>
+                <li>Stage 8 automated schema and financial-safety validation enforcing disclaimers and insufficient-data detection.</li>
+              </ol>
+            </div>
+          )}
+
+          {section === 'admin' && <AdminDashboardView />}
+        </main>
+      </div>
+    </div>
+  );
+}

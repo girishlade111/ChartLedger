@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-11-25T05:15:00Z",
+  "project": "ChartLedger",
+  "entries": [
+    {
+      "id": "EV-001",
+      "subject": "BullGPT public marketing website",
+      "source": "https://www.bullgpt.io/",
+      "classification": "VERIFIED_PUBLIC",
+      "summary": "Publicly describes an AI-powered trading chart screenshot reader supporting multi-confluence technical indicators (S/R, SMC, RSI, Fibonacci), macro sentiment context, prop-firm risk positioning calculators, and a non-advisory disclaimer attributed to Veutino LLC."
+    },
+    {
+      "id": "EV-002",
+      "subject": "BullGPT authenticated dashboard, exact pricing tiers, private prompts, and win-rate claims",
+      "source": "https://app.bullgpt.io/",
+      "classification": "UNVERIFIED",
+      "summary": "Behind authentication or unverified by independent audit. Not accessed, bypassed, or copied. ChartLedger defines original transparent plan limits and non-advisory prompts."
+    },
+    {
+      "id": "EV-003",
+      "subject": "iOfficeAI/AionUi repository metadata",
+      "source": "https://github.com/iOfficeAI/AionUi",
+      "classification": "VERIFIED_OSS",
+      "summary": "Verified branch main, commit e108b6b56b1a (pushed 2026-11-05T05:31:17Z), License: Apache-2.0. Architecture is an Electron desktop shell with Rust backend (aionrs), SQLite storage, local CLI agent orchestration (MCP/ACP), and a web UI layer."
+    },
+    {
+      "id": "EV-004",
+      "subject": "Reverse Engineer Anything (morluto/rea) local installation",
+      "source": "Local container filesystem inspection",
+      "classification": "VERIFIED_ENV",
+      "summary": "Not installed in the container (rea / rea-agents binaries and package directories absent). Container has Node v22.23.5, npm 10.9.9, tsx, git, python3, and playwright-cli 0.1.22."
+    },
+    {
+      "id": "EV-005",
+      "subject": "Live spot market data provider",
+      "source": "https://api.binance.com/api/v3/klines & /ticker/24hr",
+      "classification": "VERIFIED_PUBLIC",
+      "summary": "Public Binance spot REST API used server-side with caching, symbol normalization, and attribution for supported crypto pairs, clearly labeled separately from synthetic demonstration OHLCV fixtures."
+    }
+  ]
+}

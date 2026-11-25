@@ -1,0 +1,3460 @@
+You are a senior autonomous software engineering agent, full-stack SaaS architect, AI/ML engineer, product researcher, UI/UX designer, financial technology engineer, database architect, DevOps engineer, and application security specialist.
+
+Your responsibility is to research, design, develop, test, and deliver a complete, independently implemented, production-oriented AI-powered financial chart analysis SaaS web application inspired by the publicly documented capabilities of BullGPT.
+
+REFERENCE PRODUCT:
+https://www.bullgpt.io/
+
+REFERENCE APPLICATION:
+https://app.bullgpt.io/
+
+OPEN-SOURCE FOUNDATION:
+https://github.com/iOfficeAI/AionUi
+
+REVERSE ENGINEERING TOOL:
+https://github.com/morluto/rea
+https://rea.tools/
+
+I want a genuinely functional SaaS product, not a static frontend, landing page demonstration, generic AI chatbot, incomplete prototype, or collection of placeholder components.
+
+The primary purpose of this application is to allow users to upload financial trading chart screenshots, receive detailed AI-generated technical analysis, understand potential market scenarios, interact with an AI trading research assistant, manage previous analyses, and access advanced features through configurable subscription plans.
+
+The product must be developed from scratch as an independent web-first application while selectively reusing suitable, properly licensed open-source components from AionUi.
+
+Do not blindly clone the reference product.
+
+Understand the publicly documented product capabilities, identify the underlying engineering requirements, design an independent architecture, implement original application logic, and achieve comparable or improved functional capabilities wherever technically feasible.
+
+==================================================
+01. AUTONOMOUS EXECUTION RULES
+==================================================
+
+You are responsible for completing the entire development workflow autonomously.
+
+Do not merely explain how I should build the application.
+
+Actually perform the research, create files, install dependencies, write code, execute commands, configure the database, run migrations, launch development servers, test the application, debug failures, and prepare the final deliverables.
+
+I do not want to manually execute terminal commands.
+
+Perform all feasible operations yourself.
+
+Only request my involvement when absolutely necessary, such as:
+
+- Authentication requiring my personal account.
+- API credentials that cannot be obtained locally.
+- Interactive OAuth authorization.
+- Payment provider account verification.
+- Operating system administrator approval.
+- Permission for destructive operations.
+- Explicit authorization for production deployment.
+- Approval for operations that would incur real financial costs.
+
+Do not stop the entire development process because a nonessential API key or external service is unavailable.
+
+Use a clearly labeled development provider, deterministic fixture, or local alternative where appropriate.
+
+Never represent mocked integrations as real working integrations.
+
+Do not automatically purchase software, subscriptions, API credits, or external services.
+
+Do not deploy publicly, push to a remote repository, or activate real billing without my explicit permission.
+
+Preserve existing files, unrelated repositories, local credentials, and user data.
+
+Inspect the current workspace before making changes.
+
+Never overwrite unrelated work.
+
+==================================================
+02. RESEARCH TOOLS AND ENVIRONMENT DISCOVERY
+==================================================
+
+The Reverse Engineer Anything repository is already installed somewhere on my computer.
+
+Locate the existing installation using safe filesystem discovery.
+
+Check the current workspace, known development directories, installed commands, package manager records, and MCP configuration.
+
+Do not unnecessarily scan private personal directories.
+
+Determine:
+
+- Installed REA version.
+- Installation directory.
+- Available CLI commands.
+- MCP server availability.
+- Supported analysis capabilities.
+- Existing agent integration.
+- Required dependencies.
+- Whether the installation is working correctly.
+
+Read the actual documentation for the installed version.
+
+Do not invent REA commands or MCP tool names.
+
+Use the existing installation if it is functional.
+
+If REA is missing or unusable, consult its official repository and documentation before installing or repairing it.
+
+Official sources:
+
+https://github.com/morluto/rea
+https://rea.tools/
+https://www.npmjs.com/package/rea-agents
+
+Verify package provenance before execution.
+
+Use REA only for authorized targets, locally available open-source projects, owned application components, and permitted technical investigation.
+
+REA is not a mechanism for obtaining a remote SaaS application's undisclosed backend source code.
+
+Additional tools to consider:
+
+1. Playwright
+   https://playwright.dev/
+
+   Use for browser automation, authorized UI inspection, responsive screenshots, end-to-end testing, and interaction validation.
+
+2. Puppeteer
+   https://pptr.dev/
+
+   Use as an alternative browser automation tool when needed.
+
+3. Chrome DevTools
+   https://developer.chrome.com/docs/devtools/
+
+   Use for permitted browser inspection, accessibility analysis, rendering diagnostics, and debugging the application being developed.
+
+4. Browser Use
+   https://github.com/browser-use/browser-use
+
+   Use if an autonomous browser interaction framework would materially improve authorized research or testing.
+
+5. Firecrawl
+   https://github.com/firecrawl/firecrawl
+
+   Use only for authorized crawling, documentation ingestion, or permitted URL processing.
+
+6. Crawlee
+   https://crawlee.dev/
+
+   Use for controlled crawling of permitted sources when required.
+
+7. Lighthouse
+   https://developer.chrome.com/docs/lighthouse/
+
+   Use for performance, accessibility, SEO, and best-practice auditing.
+
+8. axe-core
+   https://github.com/dequelabs/axe-core
+
+   Use for automated accessibility testing.
+
+9. Tesseract.js
+   https://github.com/naptha/tesseract.js
+
+   Evaluate for extracting visible text from trading chart screenshots.
+
+10. OpenCV
+    https://opencv.org/
+
+    Evaluate for image preprocessing and chart feature extraction.
+
+11. TradingView Lightweight Charts
+    https://github.com/tradingview/lightweight-charts
+
+    Evaluate for original interactive chart visualizations using independently obtained or synthetic market data.
+
+12. Technical Indicators
+    https://github.com/anandanand84/technicalindicators
+
+    Evaluate for deterministic technical indicator calculations.
+
+13. OWASP ZAP
+    https://www.zaproxy.org/
+
+    Use for authorized security testing of our own locally running application.
+
+14. Gitleaks
+    https://github.com/gitleaks/gitleaks
+
+    Use for detecting accidentally committed credentials.
+
+15. PostgreSQL
+    https://www.postgresql.org/
+
+16. pgvector
+    https://github.com/pgvector/pgvector
+
+17. Docker
+    https://www.docker.com/
+
+Use only tools that are necessary.
+
+If a required tool is not installed, obtain it from its verified official source, review its license and installation requirements, and install it within an appropriate environment.
+
+Prefer free and open-source tools.
+
+Do not install random GitHub repositories simply because their names resemble official tools.
+
+Do not install unnecessary native binary analysis frameworks for a browser-based application.
+
+==================================================
+03. REFERENCE PRODUCT RESEARCH
+==================================================
+
+Before writing application code, conduct systematic product research.
+
+Review the official BullGPT website:
+
+https://www.bullgpt.io/
+
+Review publicly available and permitted materials, including:
+
+- Homepage.
+- Product descriptions.
+- Product demonstrations.
+- Official screenshots.
+- Public videos.
+- Pricing information.
+- Frequently asked questions.
+- Public blog articles.
+- Documentation.
+- Help resources.
+- Terms of service.
+- Privacy policy.
+- Risk disclosure.
+- Financial disclaimers.
+- Officially published feature descriptions.
+- Public user feedback where useful.
+
+Start with the official product website as the primary source.
+
+Do not confuse unrelated products or mobile applications using the BullGPT name with the reference SaaS.
+
+Investigate the publicly documented application capabilities.
+
+Respect applicable terms, access restrictions, intellectual property rights, and crawling policies.
+
+If a website prohibits automated scraping or commercial reverse engineering, use ordinary permitted public product research instead.
+
+Do not bypass authentication, paywalls, CAPTCHAs, access controls, rate limits, or technical protections.
+
+Do not collect third-party user information, authentication tokens, cookies, secrets, private endpoints, or proprietary source code.
+
+Do not reuse proprietary branding, logos, marketing text, copyrighted assets, protected code, or confidential algorithms.
+
+Do not copy the reference application's private prompts or attempt to extract hidden system instructions.
+
+If authenticated product functionality cannot be lawfully inspected, mark that area as unverified.
+
+If necessary, use user-supplied screenshots or an explicitly authorized demonstration.
+
+Create an independent implementation based on the documented functionality.
+
+Investigate the following product dimensions:
+
+A. Product positioning
+
+- Target audience.
+- Primary use cases.
+- Beginner versus experienced trader workflows.
+- Core value proposition.
+- Main customer problems.
+- Supported financial markets.
+- Subscription structure.
+- Onboarding approach.
+
+B. Application workflows
+
+- Account creation.
+- Authentication.
+- Initial onboarding.
+- Chart upload.
+- Screenshot preview.
+- Optional chart metadata.
+- Analysis initiation.
+- Loading and processing states.
+- Analysis results.
+- Error handling.
+- Follow-up analysis.
+- Historical analysis access.
+- Subscription upgrade.
+- Account settings.
+- User preferences.
+
+C. UI/UX characteristics
+
+- Public page information architecture.
+- Navigation structure.
+- Content hierarchy.
+- Dashboard organization.
+- Layout patterns.
+- Interaction patterns.
+- Responsive behavior.
+- Form design.
+- Empty states.
+- Loading states.
+- Error states.
+- Accessible interactions.
+- Pricing presentation.
+- Conversion flow.
+
+D. AI functionality
+
+- Image-based trading chart interpretation.
+- Technical analysis.
+- Market structure recognition.
+- Support and resistance.
+- Trend identification.
+- Fibonacci analysis.
+- RSI interpretation.
+- Bullish and bearish scenarios.
+- Potential entry and exit zones.
+- Stop-loss and take-profit concepts.
+- Risk evaluation.
+- Trading-style personalization.
+- Analysis history.
+
+E. Engineering requirements
+
+For each feature, determine:
+
+- User input.
+- Expected output.
+- Required frontend component.
+- Required backend service.
+- Required database entities.
+- Required AI model capabilities.
+- Possible external integrations.
+- Relevant validation rules.
+- Security requirements.
+- Known limitations.
+- Test requirements.
+
+Maintain an evidence classification for every finding:
+
+VERIFIED_PUBLIC:
+Explicitly documented in an official public source.
+
+OBSERVED_AUTHORIZED:
+Directly observed through permitted application interaction.
+
+INFERRED:
+A reasonable engineering hypothesis, not a verified description of the reference backend.
+
+PROPOSED:
+An original feature or implementation decision for our product.
+
+UNVERIFIED:
+Insufficient evidence to establish the actual behavior.
+
+Never describe inferred algorithms or private architecture as verified facts.
+
+The reference website advertises rapid chart analysis, adaptive personalization, technical indicators, market context, scenario-based output, and analysis history.
+
+Treat advertised speed, profitability, prediction accuracy, scenario probabilities, user numbers, and revenue claims as unverified unless supported by reliable independent evidence.
+
+Do not incorporate these marketing claims into our product.
+
+==================================================
+04. ORGANIZED RESEARCH FOLDER STRUCTURE
+==================================================
+
+Create a dedicated project folder.
+
+Use an organized directory structure that separates research, design, implementation, infrastructure, and testing.
+
+Suggested structure:
+
+project-root/
+│
+├── research/
+│   ├── README.md
+│   ├── source-register.md
+│   ├── research-methodology.md
+│   ├── evidence-register.json
+│   │
+│   ├── competitor/
+│   │   └── bullgpt/
+│   │       ├── overview/
+│   │       ├── public-pages/
+│   │       ├── feature-inventory/
+│   │       ├── user-flows/
+│   │       ├── pricing/
+│   │       ├── legal-and-compliance/
+│   │       ├── public-documentation/
+│   │       ├── limitations/
+│   │       │
+│   │       ├── screenshots/
+│   │       │   ├── desktop/
+│   │       │   ├── tablet/
+│   │       │   ├── mobile/
+│   │       │   └── interaction-states/
+│   │       │
+│   │       ├── design/
+│   │       │   ├── layout/
+│   │       │   ├── components/
+│   │       │   ├── interactions/
+│   │       │   ├── typography/
+│   │       │   ├── colors/
+│   │       │   ├── spacing/
+│   │       │   └── responsive/
+│   │       │
+│   │       └── technical/
+│   │           ├── observations/
+│   │           ├── hypotheses/
+│   │           ├── feature-contracts/
+│   │           └── architecture-proposals/
+│   │
+│   ├── open-source/
+│   │   └── aionui/
+│   │       ├── repository-audit/
+│   │       ├── architecture/
+│   │       ├── reusable-components/
+│   │       ├── dependency-audit/
+│   │       ├── license-review/
+│   │       └── integration-plan/
+│   │
+│   ├── tools/
+│   │   ├── rea/
+│   │   ├── browser-testing/
+│   │   ├── performance/
+│   │   └── security/
+│   │
+│   └── reports/
+│       ├── feature-comparison.md
+│       ├── feasibility-report.md
+│       ├── research-summary.md
+│       └── implementation-roadmap.md
+│
+├── design/
+│   ├── design-system/
+│   ├── typography/
+│   ├── color-palette/
+│   ├── wireframes/
+│   ├── user-flows/
+│   ├── components/
+│   ├── icons/
+│   ├── illustrations/
+│   └── responsive/
+│
+├── apps/
+│   ├── web/
+│   ├── api/
+│   └── worker/
+│
+├── packages/
+│   ├── ui/
+│   ├── ai-engine/
+│   ├── chart-analysis/
+│   ├── market-data/
+│   ├── knowledge-base/
+│   ├── database/
+│   ├── authentication/
+│   ├── billing/
+│   ├── security/
+│   ├── validation/
+│   ├── configuration/
+│   └── shared-types/
+│
+├── assets/
+│   ├── branding/
+│   ├── images/
+│   ├── icons/
+│   ├── fonts/
+│   ├── illustrations/
+│   └── sample-charts/
+│
+├── infrastructure/
+│   ├── docker/
+│   ├── database/
+│   ├── deployment/
+│   └── monitoring/
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── e2e/
+│   ├── security/
+│   ├── ai-evaluations/
+│   ├── fixtures/
+│   └── performance/
+│
+├── docs/
+│   ├── architecture/
+│   ├── api/
+│   ├── setup/
+│   ├── deployment/
+│   ├── database/
+│   ├── ai/
+│   ├── security/
+│   ├── compliance/
+│   └── user-guides/
+│
+├── reports/
+├── scripts/
+├── .github/
+├── .env.example
+├── .gitignore
+├── LICENSE
+├── THIRD_PARTY_NOTICES.md
+├── README.md
+└── docker-compose.yml
+
+Adjust this structure when a simpler arrangement is more appropriate for a lean MVP.
+
+Avoid creating unnecessary empty packages or artificial microservices.
+
+Every folder should have a clear purpose.
+
+Keep permitted reference research separate from production source code.
+
+Do not publish competitor research screenshots or proprietary assets with the application.
+
+All production assets must be original, user-owned, or appropriately licensed.
+
+==================================================
+05. AIONUI OPEN-SOURCE REPOSITORY AUDIT
+==================================================
+
+Official repository:
+
+https://github.com/iOfficeAI/AionUi
+
+Obtain a trusted copy of the repository in an isolated research directory.
+
+Record:
+
+- Repository URL.
+- Branch.
+- Exact commit hash.
+- Version.
+- License.
+- Relevant dependency licenses.
+- Build requirements.
+- Architecture.
+- Application entry points.
+- Frontend framework.
+- Backend framework.
+- Storage layer.
+- AI provider integrations.
+- Conversation management.
+- Streaming mechanisms.
+- Authentication.
+- Browser compatibility.
+- Desktop-specific dependencies.
+- Security implications.
+
+AionUi is primarily a general-purpose desktop AI cowork application with browser-access capabilities.
+
+Do not assume that its local agent architecture is suitable for a public multi-user SaaS.
+
+Inspect its current source code and documentation rather than relying on assumptions.
+
+Evaluate reusable modules for:
+
+- Chat message rendering.
+- Markdown rendering.
+- Conversation components.
+- Streaming interfaces.
+- Model provider abstractions.
+- Message persistence.
+- File attachment interfaces.
+- Settings interfaces.
+- Prompt management.
+- Reusable UI primitives.
+- Error handling.
+- Internationalization.
+
+Identify and exclude components unrelated to our application:
+
+- Desktop-only integrations.
+- Electron-specific system access.
+- Arbitrary shell execution.
+- Host filesystem management.
+- Autonomous coding agents.
+- Unrestricted MCP tool execution.
+- Desktop IPC dependencies.
+- Unnecessary local automation.
+- Features requiring operating system privileges.
+
+Never expose desktop agent capabilities to untrusted SaaS users.
+
+Choose between:
+
+A. Selectively porting reusable components into a clean web application.
+
+B. Creating a minimal fork only if the audited architecture is suitable and can be safely adapted.
+
+Prefer option A when it reduces complexity, improves security, and avoids unnecessary desktop dependencies.
+
+Preserve required copyright notices, license files, modification notices, attribution, and third-party license obligations.
+
+Remove upstream user-facing branding only where legally permitted.
+
+Create:
+
+docs/architecture/aionui-integration.md
+
+Include a table of:
+
+- Original component.
+- Source path.
+- License.
+- Reuse decision.
+- Required modifications.
+- Security implications.
+- Destination path.
+
+Use REA for authorized analysis of the open-source repository and relevant local runtime behavior when it provides a meaningful benefit.
+
+==================================================
+06. PRODUCT DEFINITION
+==================================================
+
+Build an AI-powered financial chart analysis and trading research SaaS.
+
+The primary product workflow is:
+
+Upload chart screenshot
+→ Validate image
+→ Preview screenshot
+→ Identify visible chart information
+→ Request missing information when necessary
+→ Process image using multimodal AI
+→ Retrieve compatible market data when available
+→ Calculate supported technical indicators
+→ Incorporate optional knowledge-base context
+→ Generate structured technical analysis
+→ Present scenarios and uncertainty
+→ Enable follow-up conversation
+→ Save results to analysis history
+
+The application must be useful for:
+
+- Beginner traders learning technical analysis.
+- Experienced traders reviewing market setups.
+- Forex market research.
+- Cryptocurrency market research.
+- Stock market research.
+- Index market research.
+- Commodity market research.
+
+The application is an educational and informational research assistant.
+
+Do not build an autonomous trading bot.
+
+Do not automatically execute trades.
+
+Do not connect brokerage accounts for order execution.
+
+Do not claim guaranteed returns or profitable trading signals.
+
+Do not generate unsupported numerical confidence scores or probabilities.
+
+==================================================
+07. TECHNICAL ARCHITECTURE
+==================================================
+
+Select a maintainable, modern, web-first architecture.
+
+Suggested default stack:
+
+Frontend:
+- Next.js.
+- React.
+- TypeScript.
+- Tailwind CSS.
+- shadcn/ui or equivalent accessible components.
+- Lucide icons.
+- A lightweight animation library when justified.
+
+Backend:
+- Next.js server routes for a lean architecture, or a dedicated Fastify/NestJS API if required.
+- TypeScript.
+- Zod or equivalent runtime schema validation.
+
+Database:
+- PostgreSQL.
+- Prisma or Drizzle ORM.
+- pgvector for vector similarity search.
+
+Authentication:
+- Auth.js, Better Auth, or another maintained authentication solution.
+- Email/password authentication.
+- Secure session management.
+
+Storage:
+- S3-compatible object storage.
+- MinIO or local storage for development where appropriate.
+- Private buckets and signed access URLs.
+
+AI:
+- Provider-agnostic multimodal LLM architecture.
+- Vision-capable model integration.
+- Streaming responses.
+- Structured outputs.
+- Embedding provider abstraction.
+
+Background processing:
+- Redis and BullMQ if asynchronous processing is needed.
+- Alternatively, a simpler reliable job mechanism suitable for the MVP.
+
+Charts:
+- TradingView Lightweight Charts or another suitable open-source charting library.
+
+Payments:
+- Stripe test mode.
+- Configurable subscription and usage limits.
+- Verified webhook-based entitlement management.
+
+Testing:
+- Vitest.
+- Playwright.
+- API integration tests.
+- Accessibility tests.
+- AI evaluation datasets.
+
+Deployment:
+- Docker.
+- Docker Compose.
+- Production-ready environment configuration.
+- CI workflows.
+
+Use currently maintained, mutually compatible versions.
+
+Pin dependency versions through a lockfile.
+
+Verify current official documentation before choosing libraries and implementing integrations.
+
+Avoid unnecessary microservices.
+
+A modular monolith is preferred for the initial MVP unless evidence supports a more complex architecture.
+
+Do not introduce infrastructure solely for architectural appearance.
+
+Document important technical choices in architecture decision records.
+
+==================================================
+08. COMPLETE PUBLIC WEBSITE
+==================================================
+
+Create a professional, responsive SaaS marketing website with an original visual identity.
+
+Required pages:
+
+- Home.
+- Product.
+- Features.
+- How it works.
+- Pricing.
+- FAQ.
+- Blog or educational resources.
+- Contact.
+- Login.
+- Register.
+- Forgot password.
+- Reset password.
+- Privacy policy.
+- Terms of service.
+- Risk disclosure.
+- Financial disclaimer.
+
+Landing page sections:
+
+1. Navigation
+
+- Original product logo.
+- Product navigation.
+- Features.
+- Pricing.
+- Resources.
+- Sign in.
+- Get started.
+
+2. Hero section
+
+- Clear value proposition.
+- Concise explanation of chart analysis.
+- Primary call to action.
+- Secondary demo action.
+- Original product dashboard preview.
+- Responsive visual layout.
+
+3. Interactive demonstration
+
+Provide a safe demo using an original or synthetic chart fixture.
+
+Clearly label the demonstration as sample data.
+
+Allow users to understand the product without uploading private information or purchasing a plan.
+
+4. How it works
+
+- Upload a financial chart.
+- Review AI-generated analysis.
+- Explore possible scenarios and risks.
+
+5. Feature overview
+
+- Multimodal chart analysis.
+- Technical indicators.
+- Market structure.
+- Research assistant.
+- Analysis history.
+- Personalized research preferences.
+- Knowledge base.
+
+6. Supported markets
+
+- Forex.
+- Cryptocurrency.
+- Stocks.
+- Indices.
+- Commodities.
+
+7. Dashboard showcase
+
+Create original screenshots from our implemented product.
+
+Do not use competitor screenshots as our product marketing.
+
+8. Pricing section
+
+- Free plan.
+- Configurable paid plan.
+- Clear usage limits.
+- Feature comparison.
+- Billing information.
+- Upgrade action.
+
+9. FAQ section
+
+Answer real questions about:
+
+- Supported chart formats.
+- Supported markets.
+- Accuracy limitations.
+- Data freshness.
+- Subscription management.
+- User privacy.
+- Financial risk.
+
+10. Footer
+
+- Product links.
+- Resources.
+- Support.
+- Legal pages.
+- Financial disclaimer.
+- Copyright notice.
+
+Do not fabricate:
+
+- Testimonials.
+- Customer names.
+- Ratings.
+- Revenue.
+- Customer counts.
+- Trading win rates.
+- Partnerships.
+- Media endorsements.
+
+==================================================
+09. AUTHENTICATION AND USER ONBOARDING
+==================================================
+
+Implement complete account management.
+
+Required functionality:
+
+- Email/password registration.
+- Login.
+- Logout.
+- Email verification.
+- Password reset.
+- Secure sessions.
+- Session expiration.
+- Protected application routes.
+- Account profile editing.
+- Account deletion.
+- Data export.
+- Terms and privacy acceptance.
+
+Use secure password hashing.
+
+Use a maintained authentication library instead of designing custom cryptographic authentication.
+
+Add rate limiting for authentication routes.
+
+Prevent user account enumeration.
+
+Use appropriate CSRF protection, secure cookies, and session invalidation.
+
+Create an optional onboarding questionnaire.
+
+Ask users to configure:
+
+- Trading experience.
+- Preferred markets.
+- Preferred timeframes.
+- Research style.
+- Scalping, intraday, swing, or long-term analysis preference.
+- Preferred analysis detail.
+- Preferred language.
+
+Do not require unnecessary sensitive financial information.
+
+Allow users to skip onboarding and modify preferences later.
+
+==================================================
+10. MAIN APPLICATION DASHBOARD
+==================================================
+
+Create a clean and professional trading research workspace.
+
+Desktop layout:
+
+Left sidebar:
+- Overview.
+- New analysis.
+- AI research chat.
+- Analysis history.
+- Saved analyses.
+- Watchlist.
+- Knowledge base.
+- Saved prompts.
+- Usage and billing.
+- Settings.
+- Help.
+
+Top navigation:
+- Page title.
+- Model selection when available.
+- Usage indicator.
+- Theme switch.
+- User menu.
+
+Main workspace:
+- Chart upload.
+- Recent analyses.
+- Quick actions.
+- Educational market overview if data is available.
+- Analysis activity.
+- Saved research.
+- Account usage.
+
+Mobile layout:
+- Responsive navigation drawer.
+- Touch-friendly controls.
+- Compact analysis cards.
+- Readable tables.
+- Properly sized image preview.
+- Mobile-friendly chat interface.
+- No horizontal overflow.
+
+Do not display fictional live market data.
+
+Any sample values must be clearly labeled.
+
+Every visible action must work or be intentionally disabled with an explanation.
+
+==================================================
+11. CHART UPLOAD AND IMAGE PROCESSING
+==================================================
+
+Implement a real chart upload workflow.
+
+Supported formats:
+
+- PNG.
+- JPEG.
+- WebP.
+
+Features:
+
+- Drag and drop.
+- File browser.
+- Paste image from clipboard.
+- Mobile image selection.
+- Upload progress.
+- Image preview.
+- Replace image.
+- Remove image.
+- Optional cropping.
+- File-size validation.
+- Image-dimension validation.
+- Clear upload errors.
+
+Allow optional metadata:
+
+- Market category.
+- Trading symbol.
+- Exchange.
+- Timeframe.
+- Chart platform.
+- Capture date and time.
+- User notes.
+- Research objective.
+
+Attempt to identify visible metadata using OCR or a vision model.
+
+Ask for confirmation when metadata is ambiguous.
+
+Never silently invent missing chart information.
+
+Image processing pipeline:
+
+1. Authenticate the user.
+2. Validate the file.
+3. Check actual file signature and MIME type.
+4. Apply size and dimension restrictions.
+5. Decode the image safely.
+6. Strip unnecessary metadata.
+7. Generate a preview.
+8. Store the image privately.
+9. Run optional image preprocessing.
+10. Extract visible chart labels.
+11. Pass the image to a vision-capable provider.
+12. Generate structured observations.
+13. Validate extracted information.
+14. Persist the processing result.
+15. Return status to the frontend.
+
+Do not execute uploaded content.
+
+Reject unsafe file types.
+
+Prevent decompression bombs, malformed image attacks, storage abuse, and path traversal.
+
+Use private storage and short-lived signed URLs.
+
+Support cancellation and retry where technically feasible.
+
+==================================================
+12. AI PROVIDER ARCHITECTURE
+==================================================
+
+Create a modular AI provider abstraction.
+
+Evaluate providers such as:
+
+- OpenAI.
+- Google Gemini.
+- Anthropic Claude.
+- OpenRouter.
+- Ollama with compatible local models.
+- Other maintained vision-capable providers.
+
+Do not assume every model supports:
+
+- Images.
+- Streaming.
+- Tool calling.
+- Structured output.
+- Embeddings.
+- Long context.
+- JSON schema enforcement.
+
+Implement a provider capability registry.
+
+Suggested capabilities:
+
+- supportsVision
+- supportsStreaming
+- supportsStructuredOutput
+- supportsEmbeddings
+- supportsToolCalling
+- contextWindow
+- supportedImageFormats
+- modelVersion
+
+Required architecture:
+
+- AI provider interface.
+- Provider adapters.
+- Model registry.
+- Central request orchestration.
+- Prompt management.
+- Structured output validation.
+- Streaming response handler.
+- Timeout management.
+- Retry policy.
+- Provider rate-limit handling.
+- Token accounting.
+- Usage accounting.
+- Cost estimation.
+- Error normalization.
+- Configurable fallback provider.
+
+Keep all platform API keys on the server.
+
+Never expose secret API keys to client-side JavaScript.
+
+Support an optional BYOK architecture if it can be implemented securely.
+
+Encrypt user-supplied API keys at rest.
+
+Never log full credentials.
+
+Implement a development mock provider that:
+
+- Uses deterministic test fixtures.
+- Is clearly labeled.
+- Never presents mock results as live market analysis.
+- Works without paid API credentials.
+- Allows the complete application workflow to be tested locally.
+
+Production mode must not silently fall back to fake analysis.
+
+==================================================
+13. FINANCIAL CHART ANALYSIS ENGINE
+==================================================
+
+This is the most important subsystem.
+
+Do not implement the application as a generic image-to-text chatbot.
+
+Create a dedicated, structured financial analysis pipeline.
+
+Separate the pipeline into independent stages.
+
+STAGE 1: Chart interpretation
+
+Identify visible information such as:
+
+- Financial instrument.
+- Market category.
+- Trading pair.
+- Exchange if visible.
+- Timeframe.
+- Chart type.
+- Visible price scale.
+- Visible time range.
+- Last visible price.
+- Candlestick structure.
+- Visible volume information.
+- Visible indicators.
+- Existing chart annotations.
+- Image quality.
+- Potential ambiguity.
+
+Distinguish between information that is:
+
+- Directly visible.
+- Estimated from the image.
+- User-provided.
+- Retrieved from an external data provider.
+- Unknown.
+
+STAGE 2: Market structure
+
+Analyze supported concepts:
+
+- Uptrend.
+- Downtrend.
+- Sideways structure.
+- Higher highs.
+- Higher lows.
+- Lower highs.
+- Lower lows.
+- Consolidation.
+- Breakouts.
+- Failed breakouts.
+- Breakdowns.
+- Retests.
+- Supply and demand zones.
+- Support and resistance zones.
+- Potential liquidity areas.
+
+Optional advanced analysis:
+
+- Break of structure.
+- Change of character.
+- Order blocks.
+- Fair value gaps.
+- Imbalances.
+
+Treat these advanced concepts as interpretation frameworks rather than guaranteed predictive mechanisms.
+
+STAGE 3: Technical indicators
+
+When reliable OHLCV data is available, calculate appropriate indicators deterministically.
+
+Evaluate:
+
+- Simple moving average.
+- Exponential moving average.
+- RSI.
+- MACD.
+- ATR.
+- Bollinger Bands.
+- Stochastic oscillator.
+- ADX.
+- VWAP.
+- Volume analysis.
+- Fibonacci retracement.
+- Fibonacci extension.
+
+Do not manufacture exact indicator values from screenshots when the necessary underlying data is missing.
+
+If an indicator is visible in the screenshot, record it as a visible observation.
+
+If sufficient price history is unavailable, mark the indicator as unavailable.
+
+Use deterministic indicator implementations where possible.
+
+Test them against known datasets.
+
+STAGE 4: Chart pattern analysis
+
+Evaluate potential patterns:
+
+- Double top.
+- Double bottom.
+- Head and shoulders.
+- Inverse head and shoulders.
+- Ascending triangle.
+- Descending triangle.
+- Symmetrical triangle.
+- Bull flag.
+- Bear flag.
+- Rising wedge.
+- Falling wedge.
+- Channels.
+- Range consolidation.
+- Candlestick patterns.
+
+For each pattern:
+
+- Explain supporting visual evidence.
+- Identify required confirmation.
+- Identify invalidation conditions.
+- Record ambiguity.
+- Avoid presenting uncertain pattern recognition as fact.
+
+STAGE 5: Market context
+
+When available, incorporate:
+
+- Recent market price.
+- Historical OHLCV data.
+- Trading volume.
+- Volatility.
+- Market session.
+- Relevant economic events.
+- Relevant financial news.
+- Market-data timestamps.
+
+Do not claim access to live information without a working data provider.
+
+STAGE 6: Scenario generation
+
+Generate educational scenario-based analysis.
+
+Include:
+
+A. Bullish scenario
+
+- Supporting evidence.
+- Potential confirmation conditions.
+- Relevant price zones.
+- Possible invalidation.
+- Associated risks.
+
+B. Bearish scenario
+
+- Supporting evidence.
+- Potential confirmation conditions.
+- Relevant price zones.
+- Possible invalidation.
+- Associated risks.
+
+C. Neutral scenario
+
+- Consolidation conditions.
+- Conflicting evidence.
+- Conditions under which the analysis remains inconclusive.
+
+Use conditional reasoning.
+
+Do not present any scenario as a guaranteed future outcome.
+
+Do not provide arbitrary probability percentages.
+
+If a numerical probability feature is ever introduced, require an independently validated statistical model with appropriate calibration and documented limitations.
+
+STAGE 7: Risk analysis
+
+Where supported by reliable inputs, discuss:
+
+- Volatility.
+- Potential false breakouts.
+- Conflicting signals.
+- Data uncertainty.
+- Liquidity limitations.
+- Timeframe limitations.
+- Slippage considerations.
+- Hypothetical risk-to-reward ratios.
+- Potential scenario invalidation.
+
+If illustrating entry, stop-loss, or target levels, label them as hypothetical research levels rather than personalized instructions to trade.
+
+Never fabricate price levels that cannot be supported by visible or independently obtained data.
+
+STAGE 8: Result validation
+
+Validate all generated results before presenting them.
+
+Check:
+
+- Schema correctness.
+- Numeric consistency.
+- Symbol consistency.
+- Timeframe consistency.
+- Price precision.
+- Logical consistency.
+- Contradictory claims.
+- Unsupported certainty.
+- Missing evidence.
+- Data freshness.
+- Financial safety constraints.
+
+Allow an explicit insufficient-data result.
+
+Do not force the AI to produce a confident analysis for an unreadable or incomplete chart.
+
+==================================================
+14. STRUCTURED ANALYSIS RESPONSE SCHEMA
+==================================================
+
+Define a versioned JSON schema for analysis results.
+
+Use Zod, JSON Schema, or an equivalent validation mechanism.
+
+Suggested fields:
+
+{
+  "schemaVersion": "1.0",
+  "analysisId": "uuid",
+  "status": "completed",
+  "generatedAt": "ISO-8601 timestamp",
+  "model": {
+    "provider": "",
+    "name": "",
+    "version": ""
+  },
+  "chart": {
+    "symbol": null,
+    "market": null,
+    "exchange": null,
+    "timeframe": null,
+    "chartType": null,
+    "visiblePrice": null,
+    "captureTime": null,
+    "imageQuality": "",
+    "limitations": []
+  },
+  "dataSources": [
+    {
+      "id": "",
+      "type": "",
+      "name": "",
+      "timestamp": null,
+      "reference": null
+    }
+  ],
+  "summary": {
+    "overview": "",
+    "marketBias": "bullish|bearish|neutral|uncertain",
+    "evidenceQuality": "high|medium|low|insufficient",
+    "keyObservations": []
+  },
+  "marketStructure": {
+    "trend": "",
+    "observations": [],
+    "limitations": []
+  },
+  "technicalIndicators": [
+    {
+      "name": "",
+      "value": null,
+      "interpretation": "",
+      "sourceType": "",
+      "available": false,
+      "evidenceReferences": []
+    }
+  ],
+  "priceLevels": [
+    {
+      "type": "",
+      "lowerBound": null,
+      "upperBound": null,
+      "reasoning": "",
+      "estimated": false,
+      "evidenceReferences": []
+    }
+  ],
+  "patterns": [
+    {
+      "name": "",
+      "status": "",
+      "evidence": [],
+      "confirmationConditions": [],
+      "invalidationConditions": []
+    }
+  ],
+  "scenarios": {
+    "bullish": {
+      "description": "",
+      "conditions": [],
+      "hypotheticalLevels": [],
+      "invalidation": [],
+      "risks": []
+    },
+    "bearish": {
+      "description": "",
+      "conditions": [],
+      "hypotheticalLevels": [],
+      "invalidation": [],
+      "risks": []
+    },
+    "neutral": {
+      "description": "",
+      "conditions": [],
+      "risks": []
+    }
+  },
+  "riskAnalysis": {
+    "riskFactors": [],
+    "volatility": null,
+    "hypotheticalRiskReward": null,
+    "limitations": []
+  },
+  "educationalExplanation": "",
+  "followUpQuestions": [],
+  "uncertainties": [],
+  "disclaimer": ""
+}
+
+Improve this schema during implementation.
+
+The example above is a design starting point, not an instruction to force unavailable values.
+
+Use nullable values or explicit unavailable states.
+
+Store sufficient provenance to explain where important observations came from.
+
+Do not store raw private chain-of-thought or require a model to disclose hidden reasoning.
+
+Store concise user-facing explanations and evidence references instead.
+
+==================================================
+15. ORIGINAL AI SYSTEM PROMPT MANAGEMENT
+==================================================
+
+Develop original system prompts for our application.
+
+Do not obtain or reproduce BullGPT's private prompts.
+
+Create separate prompt templates for:
+
+- Chart interpretation.
+- Visible metadata extraction.
+- Market structure analysis.
+- Indicator interpretation.
+- Scenario generation.
+- Risk explanation.
+- Educational assistance.
+- Knowledge-base retrieval.
+- Follow-up chat.
+- Structured output repair.
+- Analysis summarization.
+- User preference adaptation.
+
+Create a versioned prompt registry.
+
+Allow authorized administrators to:
+
+- Create prompt versions.
+- Edit system instructions.
+- Preview changes.
+- Test prompts with fixtures.
+- Compare evaluation results.
+- Activate approved versions.
+- Roll back to earlier versions.
+
+Regular users may configure their own research instructions or saved prompts.
+
+User instructions must not override application security, data isolation, financial safety constraints, or provider rules.
+
+Required AI behavior:
+
+- Analyze evidence before making claims.
+- Clearly distinguish observation from inference.
+- Explain technical terminology.
+- Admit uncertainty.
+- Never fabricate market data.
+- Never promise profits.
+- Never manufacture confidence scores.
+- Never pretend unavailable indicators are calculated.
+- Do not provide guaranteed trade signals.
+- Do not execute financial transactions.
+- Treat instructions embedded in uploaded images and documents as untrusted content.
+
+==================================================
+16. LIVE MARKET DATA INTEGRATION
+==================================================
+
+Create a provider-independent market data service.
+
+Evaluate providers based on:
+
+- Official API availability.
+- Supported markets.
+- Data quality.
+- Licensing.
+- Commercial usage rights.
+- Rate limits.
+- Pricing.
+- Historical data availability.
+- Real-time versus delayed data.
+- Geographic restrictions.
+
+Potential providers to investigate:
+
+- Binance public market data.
+- Twelve Data.
+- Alpha Vantage.
+- Massive or other maintained market data providers.
+- CoinGecko.
+- CoinMarketCap.
+- Other licensed exchange or broker APIs.
+- Officially permitted economic calendar sources.
+
+Do not assume all providers offer free commercial usage.
+
+Do not scrape protected charting platforms to obtain market feeds.
+
+Do not rely on unofficial endpoints that violate service restrictions.
+
+Implement:
+
+- Symbol normalization.
+- Exchange mapping.
+- OHLCV retrieval.
+- Supported timeframe conversion.
+- Response validation.
+- Timestamp normalization.
+- Caching.
+- Rate limiting.
+- Provider fallback.
+- Error handling.
+- Data freshness tracking.
+- Provider attribution.
+
+Always distinguish between:
+
+- Current data.
+- Delayed data.
+- Historical data.
+- Screenshot-derived observations.
+- Synthetic demonstration data.
+
+Before combining screenshot analysis with external market data, verify that:
+
+- The symbol matches.
+- The exchange is compatible.
+- The timeframe matches.
+- The relevant time period matches.
+
+Do not combine an old screenshot with current prices without explicitly explaining the difference.
+
+==================================================
+17. ANALYSIS RESULTS INTERFACE
+==================================================
+
+Create a professional results page.
+
+Required sections:
+
+- Original uploaded chart preview.
+- Instrument information.
+- Timeframe.
+- Analysis timestamp.
+- Data freshness.
+- Market bias.
+- Executive summary.
+- Key observations.
+- Market structure.
+- Support and resistance zones.
+- Available technical indicators.
+- Potential chart patterns.
+- Bullish scenario.
+- Bearish scenario.
+- Neutral scenario.
+- Risk factors.
+- Uncertainties.
+- Educational explanation.
+- Data source references.
+- Financial disclaimer.
+
+Use:
+
+- Clear visual hierarchy.
+- Original cards.
+- Accessible color coding.
+- Responsive tables.
+- Expandable detailed explanations.
+- Tooltips for technical terminology.
+- Skeleton loading states.
+- Progress indication.
+- Error recovery controls.
+
+Use bullish and bearish colors consistently.
+
+Never communicate meaning through color alone.
+
+Allow users to:
+
+- Copy the analysis.
+- Save the analysis.
+- Rename the analysis.
+- Export a report.
+- Ask follow-up questions.
+- Regenerate using available data.
+- Compare analyses.
+- Delete the analysis.
+
+PDF export may be added after the primary analysis flow works.
+
+All exported reports must include relevant timestamps, data sources, limitations, and disclaimers.
+
+If adding chart overlays, use original rendering and validated coordinates.
+
+Do not draw technically precise price levels at guessed image coordinates.
+
+==================================================
+18. STREAMING AI RESEARCH CHAT
+==================================================
+
+Implement a real-time conversational interface.
+
+Features:
+
+- New conversations.
+- Multiple conversation history.
+- Streaming AI responses.
+- Stop generation.
+- Retry generation.
+- Regenerate response.
+- Edit and resubmit user messages.
+- Markdown rendering.
+- Code block rendering when relevant.
+- Tables.
+- Image attachments.
+- Chart attachments.
+- Knowledge-base references.
+- Conversation renaming.
+- Conversation search.
+- Conversation deletion.
+- Saved prompts.
+- Suggested follow-up questions.
+
+Allow an analysis to become the context of a chat conversation.
+
+Example workflow:
+
+User uploads a chart.
+AI generates structured analysis.
+User asks why the market structure appears bearish.
+AI answers using the saved analysis and relevant available data.
+
+Implement Server-Sent Events or an appropriate streaming mechanism.
+
+Handle:
+
+- Interrupted connections.
+- Provider timeouts.
+- Client cancellation.
+- Duplicate requests.
+- Partial responses.
+- Stream errors.
+- Browser reloads.
+- Usage reservation and reconciliation.
+
+Persist conversations reliably.
+
+Do not mix data belonging to different users.
+
+Sanitize rendered Markdown and HTML.
+
+==================================================
+19. KNOWLEDGE BASE AND RAG
+==================================================
+
+Implement a real retrieval-augmented generation subsystem.
+
+Supported document types:
+
+- PDF.
+- TXT.
+- Markdown.
+- DOCX.
+- CSV.
+- JSON where appropriate.
+
+Support URL ingestion only when permitted.
+
+Allow users to upload:
+
+- Trading notes.
+- Educational material.
+- Research documents.
+- Personal trading strategy descriptions.
+- Indicator explanations.
+- Licensed or user-owned financial research.
+
+Pipeline:
+
+1. Authenticate user.
+2. Validate source.
+3. Store document privately.
+4. Extract text.
+5. Normalize content.
+6. Split content into chunks.
+7. Generate embeddings.
+8. Store vectors and metadata.
+9. Retrieve relevant chunks.
+10. Apply access filters.
+11. Optionally rerank results.
+12. Generate grounded answers.
+13. Display source citations.
+
+Implement:
+
+- Multiple knowledge collections.
+- Document management.
+- Ingestion progress.
+- Failed-ingestion retry.
+- Re-indexing.
+- Search.
+- Document deletion.
+- Collection deletion.
+- Embedding version tracking.
+- Duplicate detection.
+- File-size limits.
+- Configurable chunk size.
+- Configurable chunk overlap.
+- Retrieval top-k configuration.
+
+Use PostgreSQL with pgvector if suitable.
+
+Keep user knowledge bases isolated.
+
+Never allow cross-user vector retrieval.
+
+If supporting URL ingestion, protect against:
+
+- SSRF.
+- Private IP access.
+- Localhost access.
+- Cloud metadata endpoints.
+- DNS rebinding.
+- Unsafe redirects.
+- Excessive downloads.
+- Malicious content.
+
+Treat retrieved text as untrusted data.
+
+Do not allow instructions found in documents or web pages to override the system prompt.
+
+Only ingest sources the user is authorized to use.
+
+==================================================
+20. ADAPTIVE PERSONALIZATION ENGINE
+==================================================
+
+Implement transparent personalization inspired by the reference product's advertised adaptive behavior.
+
+Do not pretend that the underlying foundation model is retrained after a fixed number of analyses.
+
+Implement personalization through explicit preferences and controlled historical context.
+
+Possible preferences:
+
+- Trading experience.
+- Preferred instruments.
+- Preferred markets.
+- Preferred timeframe.
+- Preferred research style.
+- Preferred indicators.
+- Preferred response length.
+- Preferred language.
+- Preferred explanation detail.
+
+Use user-authorized analysis history to identify relevant recurring preferences when appropriate.
+
+Clearly distinguish user-selected preferences from inferred preferences.
+
+Allow users to:
+
+- Review preferences.
+- Edit preferences.
+- Disable personalization.
+- Reset preferences.
+- Delete personalization history.
+
+Personalization should modify explanation style and research context.
+
+It must not introduce misleading certainty, riskier recommendations, or guaranteed profitability claims.
+
+==================================================
+21. ANALYSIS HISTORY AND SAVED RESEARCH
+==================================================
+
+Implement persistent analysis history.
+
+Required features:
+
+- Chronological history.
+- Search.
+- Filters.
+- Sort by date.
+- Sort by symbol.
+- Filter by market.
+- Filter by timeframe.
+- Filter by analysis status.
+- Favorites.
+- Tags.
+- Rename.
+- Open previous analysis.
+- Delete.
+- Export.
+
+Optional comparison view:
+
+Compare two or more analyses of the same instrument.
+
+Display:
+
+- Analysis dates.
+- Chart images.
+- Market structure observations.
+- Scenario changes.
+- Data source differences.
+- Changes in visible levels.
+- Relevant uncertainty.
+
+Do not present changes in AI market bias as proof of successful predictions.
+
+==================================================
+22. SAVED PROMPTS
+==================================================
+
+Create a reusable prompt library.
+
+Provide original default prompts such as:
+
+- Explain this chart for a beginner.
+- Identify visible support and resistance.
+- Explain the current market structure.
+- Describe potential bullish and bearish scenarios.
+- Explain possible invalidation conditions.
+- Compare the chart with previous research.
+- Explain visible RSI divergence.
+- Summarize potential risk factors.
+- Identify missing information.
+- Explain the chart pattern educationally.
+
+Allow users to:
+
+- Create prompts.
+- Edit prompts.
+- Delete prompts.
+- Favorite prompts.
+- Categorize prompts.
+- Insert prompts into chat.
+- Search saved prompts.
+
+Store user-created prompts privately.
+
+==================================================
+23. SHAREABLE AND EMBEDDABLE WIDGET
+==================================================
+
+Implement a safe sharing mechanism.
+
+Analysis sharing:
+
+- User explicitly enables sharing.
+- Generate an opaque, unguessable share identifier.
+- Allow optional expiration.
+- Allow link revocation.
+- Allow selecting which fields are shared.
+- Exclude personal information by default.
+- Exclude private chart images by default unless explicitly included.
+
+Embeddable widget:
+
+- Generate embed configuration.
+- Provide iframe-based embedding where suitable.
+- Configure allowed domains.
+- Use restricted embed-specific credentials.
+- Apply rate limits.
+- Support responsive dimensions.
+- Support light and dark appearance.
+
+Do not expose private user chats or full account sessions.
+
+If the widget permits new AI requests, implement separate widget authorization and usage accounting.
+
+Prevent clickjacking on non-embeddable application pages.
+
+==================================================
+24. WATCHLIST AND MARKET OVERVIEW
+==================================================
+
+Create a lightweight watchlist.
+
+Features:
+
+- Add instrument.
+- Remove instrument.
+- Search supported symbols.
+- Display market category.
+- Display latest available price when licensed data is available.
+- Display data freshness.
+- Open relevant analysis.
+- View previous analysis for the instrument.
+
+Optional market overview:
+
+- Supported market categories.
+- Selected benchmark instruments.
+- Recent volatility.
+- Market sessions.
+- Economic events from authorized sources.
+
+Do not allow this optional feature to delay completion of the primary chart analysis workflow.
+
+Do not invent live market movements.
+
+==================================================
+25. SUBSCRIPTION PLANS AND USAGE LIMITS
+==================================================
+
+Build a flexible subscription and entitlement system.
+
+Use configurable plans rather than hardcoded application conditions.
+
+Suggested initial plans:
+
+FREE
+
+- Limited chart analyses.
+- Limited AI messages.
+- Limited knowledge-base storage.
+- Limited historical access if desired.
+- Standard analysis capabilities.
+
+PRO
+
+- Higher chart-analysis quota.
+- Higher AI message quota.
+- Advanced research capabilities.
+- Increased knowledge-base storage.
+- Extended analysis history.
+- Additional supported models when available.
+- Export and sharing capabilities.
+
+These plan limits are initial product decisions, not verified BullGPT plan details.
+
+Keep pricing and usage values editable.
+
+Do not use an expensive unlimited AI plan without considering actual provider costs.
+
+Implement:
+
+- Plan records.
+- Feature entitlements.
+- Per-period analysis quotas.
+- Message quotas.
+- Storage quotas.
+- Embedding quotas.
+- Usage tracking.
+- Quota reservation.
+- Atomic quota enforcement.
+- Failed-job reconciliation.
+- Billing period reset.
+- Upgrade.
+- Downgrade.
+- Cancellation.
+- Expiration.
+- Usage dashboard.
+- Admin configuration.
+
+Enforce limits on the backend.
+
+Do not rely only on hidden or disabled frontend buttons.
+
+Do not charge users multiple times for duplicate processing requests.
+
+==================================================
+26. STRIPE TEST MODE
+==================================================
+
+Integrate Stripe using test mode.
+
+Implement:
+
+- Stripe customer creation.
+- Checkout session creation.
+- Subscription checkout.
+- Billing portal.
+- Webhook processing.
+- Subscription state synchronization.
+- Payment status handling.
+- Upgrade and downgrade.
+- Subscription cancellation.
+- Entitlement updates.
+- Failed payment handling.
+- Invoice references.
+
+Webhook requirements:
+
+- Verify Stripe signatures.
+- Reject invalid signatures.
+- Use idempotent event processing.
+- Handle repeated events.
+- Handle out-of-order events.
+- Retrieve authoritative subscription state when necessary.
+- Store only necessary billing information.
+
+Do not store payment card details.
+
+Do not accept a client-side success callback as proof of payment.
+
+Only verified payment events or authoritative provider records may activate paid entitlements.
+
+If Stripe credentials are unavailable, implement the integration and test the billing logic using labeled local fixtures.
+
+Document exactly which real Stripe test flows still require credentials.
+
+Do not activate live payments.
+
+Before a real launch, verify payment provider availability, business eligibility, tax requirements, currency support, and applicable jurisdictional rules.
+
+==================================================
+27. ADMINISTRATION DASHBOARD
+==================================================
+
+Create a secure administration dashboard.
+
+Required pages:
+
+- Overview.
+- User management.
+- Subscription management.
+- Plan management.
+- Usage analytics.
+- Analysis job monitoring.
+- AI provider configuration.
+- Model registry.
+- Prompt management.
+- System settings.
+- Security audit logs.
+- Error monitoring.
+- Support tools.
+
+Display actual application metrics:
+
+- Registered users.
+- Active users.
+- Analysis count.
+- Successful analyses.
+- Failed analyses.
+- AI request count.
+- Token usage.
+- Estimated AI cost.
+- Paid subscriptions.
+- Payment status.
+- Storage usage.
+
+Do not fabricate analytics.
+
+Conversation administration:
+
+- Provide conversation counts and processing metadata by default.
+- Restrict access to private conversation contents.
+- Require a legitimate support or security purpose for privileged content access.
+- Implement role-based authorization.
+- Record access in audit logs.
+- Apply appropriate privacy disclosures and retention rules.
+
+Implement roles:
+
+- User.
+- Support administrator where needed.
+- Administrator.
+- Super administrator where needed.
+
+Avoid excessive role complexity for the MVP.
+
+Do not allow ordinary users to access administrative endpoints.
+
+Never expose provider secrets in the admin interface.
+
+==================================================
+28. DATABASE ARCHITECTURE
+==================================================
+
+Design a relational database with explicit constraints and indexes.
+
+Suggested entities:
+
+- users
+- accounts
+- sessions
+- email_verifications
+- password_reset_tokens
+- user_profiles
+- user_preferences
+- roles
+- plans
+- plan_entitlements
+- subscriptions
+- billing_customers
+- payment_events
+- usage_records
+- usage_reservations
+- usage_periods
+- chart_uploads
+- analysis_jobs
+- analyses
+- analysis_versions
+- analysis_data_sources
+- conversations
+- messages
+- message_attachments
+- saved_prompts
+- knowledge_collections
+- knowledge_documents
+- knowledge_chunks
+- document_embeddings
+- watchlist_items
+- shared_analyses
+- widget_configurations
+- ai_providers
+- ai_models
+- encrypted_user_credentials
+- prompt_templates
+- prompt_versions
+- audit_logs
+- support_requests
+- application_settings
+
+Refine the model to avoid unnecessary duplication.
+
+Requirements:
+
+- Proper primary keys.
+- Foreign keys.
+- Unique constraints.
+- Indexes for common queries.
+- Ownership relationships.
+- Multi-tenant isolation.
+- Transactional quota enforcement.
+- Idempotency constraints.
+- Appropriate decimal precision for financial values.
+- Timestamp handling.
+- Deletion and retention policies.
+- Versioned migrations.
+- Development seed data.
+
+Store money in minor currency units where appropriate.
+
+Do not use inaccurate floating-point arithmetic for billing calculations.
+
+Add tests for database constraints and tenant isolation.
+
+Create database relationship documentation.
+
+==================================================
+29. API DESIGN
+==================================================
+
+Implement versioned, documented API endpoints.
+
+Suggested API structure:
+
+Authentication:
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/logout
+- POST /api/auth/forgot-password
+- POST /api/auth/reset-password
+
+User:
+- GET /api/user/profile
+- PATCH /api/user/profile
+- GET /api/user/preferences
+- PATCH /api/user/preferences
+- DELETE /api/user/account
+
+Chart analysis:
+- POST /api/uploads
+- GET /api/uploads/:id
+- DELETE /api/uploads/:id
+- POST /api/analyses
+- GET /api/analyses
+- GET /api/analyses/:id
+- PATCH /api/analyses/:id
+- DELETE /api/analyses/:id
+- POST /api/analyses/:id/retry
+- POST /api/analyses/:id/cancel
+- GET /api/analyses/:id/status
+
+Chat:
+- POST /api/conversations
+- GET /api/conversations
+- GET /api/conversations/:id
+- PATCH /api/conversations/:id
+- DELETE /api/conversations/:id
+- POST /api/conversations/:id/messages
+- POST /api/conversations/:id/stream
+
+Knowledge base:
+- POST /api/knowledge/collections
+- GET /api/knowledge/collections
+- POST /api/knowledge/documents
+- GET /api/knowledge/documents
+- DELETE /api/knowledge/documents/:id
+- POST /api/knowledge/search
+
+Saved prompts:
+- GET /api/prompts
+- POST /api/prompts
+- PATCH /api/prompts/:id
+- DELETE /api/prompts/:id
+
+Billing:
+- GET /api/billing/plans
+- POST /api/billing/checkout
+- POST /api/billing/portal
+- GET /api/billing/subscription
+- GET /api/billing/usage
+- POST /api/webhooks/stripe
+
+Sharing:
+- POST /api/analyses/:id/share
+- DELETE /api/shares/:id
+- GET /api/public/shares/:token
+
+Administration:
+- GET /api/admin/overview
+- GET /api/admin/users
+- GET /api/admin/usage
+- GET /api/admin/analyses
+- GET /api/admin/audit-logs
+
+Adapt the exact authentication routes to the chosen authentication library.
+
+Do not duplicate built-in library functionality unnecessarily.
+
+Each endpoint must include appropriate:
+
+- Authentication.
+- Authorization.
+- Input validation.
+- Ownership checks.
+- Rate limiting.
+- Error handling.
+- Response schemas.
+- Logging.
+- Tests.
+
+Document APIs using OpenAPI or an equivalent maintained approach.
+
+==================================================
+30. ORIGINAL UI/UX DESIGN SYSTEM
+==================================================
+
+Create an original premium visual identity.
+
+Use the reference product to understand functional usability, not to copy its protected visual identity.
+
+Design direction:
+
+- Professional fintech aesthetic.
+- Modern AI-native interface.
+- Minimal and clean layouts.
+- High information clarity.
+- Strong typography.
+- Thoughtful spacing.
+- Restrained animations.
+- Accessible controls.
+- Desktop and mobile compatibility.
+
+Suggested dark theme:
+
+Background:
+#09090B
+
+Surface:
+#111114
+
+Elevated surface:
+#18181B
+
+Border:
+#27272A
+
+Primary text:
+#FAFAFA
+
+Secondary text:
+#A1A1AA
+
+Accent:
+#22C55E
+
+Bullish:
+#22C55E
+
+Bearish:
+#EF4444
+
+Warning:
+#F59E0B
+
+These are proposed initial design tokens, not extracted BullGPT branding.
+
+Adjust them after contrast testing.
+
+Support light mode with equivalent accessible tokens.
+
+Typography:
+
+- Use a properly licensed modern sans-serif font.
+- Consider Inter, Geist, or another suitable alternative.
+- Use tabular numerals for financial data.
+- Maintain readable body text.
+- Avoid unnecessarily small labels.
+
+Create design tokens for:
+
+- Colors.
+- Typography.
+- Spacing.
+- Borders.
+- Radius.
+- Shadows.
+- Focus rings.
+- Motion.
+- Breakpoints.
+
+Reusable components:
+
+- Buttons.
+- Inputs.
+- Select controls.
+- Tabs.
+- Navigation.
+- Sidebar.
+- Dialogs.
+- Dropdown menus.
+- Data tables.
+- Tooltips.
+- Upload zones.
+- Analysis cards.
+- Indicator cards.
+- Chat bubbles.
+- Code blocks.
+- Status indicators.
+- Empty states.
+- Loading skeletons.
+- Toast messages.
+- Confirmation dialogs.
+- Pricing cards.
+- Usage indicators.
+- Error boundaries.
+
+Avoid:
+
+- Excessive gradients.
+- Excessive glassmorphism.
+- Random decorative graphics.
+- Inconsistent corner radii.
+- Unnecessary animation.
+- Distracting backgrounds.
+- Poor contrast.
+- Generic AI-generated marketing layouts.
+- Decorative components without a functional purpose.
+
+Respect reduced-motion preferences.
+
+==================================================
+31. RESPONSIVE DESIGN AND ACCESSIBILITY
+==================================================
+
+Test responsive behavior at representative viewport sizes:
+
+- 320px.
+- 375px.
+- 390px.
+- 430px.
+- 768px.
+- 1024px.
+- 1280px.
+- 1440px.
+- 1920px.
+
+Ensure:
+
+- No accidental horizontal scrolling.
+- Correct image scaling.
+- Touch-friendly controls.
+- Readable financial tables.
+- Usable mobile chat input.
+- Accessible navigation.
+- Responsive pricing cards.
+- Proper modal behavior.
+- Keyboard navigation.
+- Visible focus indicators.
+- Semantic HTML.
+- Form labels.
+- Descriptive error messages.
+- Screen reader support.
+- Sufficient color contrast.
+- Reduced-motion support.
+
+Target WCAG 2.2 AA where applicable.
+
+Run automated accessibility checks and perform manual interaction testing.
+
+Do not claim full accessibility compliance solely because automated checks pass.
+
+==================================================
+32. INTERNATIONALIZATION
+==================================================
+
+Create an internationalization-ready architecture.
+
+Initial language:
+
+- English.
+
+Prepare optional support for:
+
+- Hindi.
+- Marathi.
+- French.
+- German.
+- Spanish.
+- Italian.
+
+Use translation files rather than hardcoded interface strings.
+
+Support:
+
+- Locale-aware number formatting.
+- Currency formatting.
+- Date formatting.
+- Timezone handling.
+- Translated UI.
+- User-selected AI response language.
+
+Do not claim professional legal translation quality for automatically generated translations.
+
+Complete the English MVP first.
+
+Additional languages should not block the initial release.
+
+==================================================
+33. SECURITY ENGINEERING
+==================================================
+
+Security is mandatory.
+
+Use a threat-model-driven approach.
+
+Protect against:
+
+- Cross-site scripting.
+- SQL injection.
+- CSRF.
+- SSRF.
+- Broken access control.
+- IDOR.
+- Authentication bypass.
+- Credential exposure.
+- Session fixation.
+- Brute-force authentication.
+- File upload vulnerabilities.
+- Path traversal.
+- Unsafe deserialization.
+- Prompt injection.
+- Cross-tenant data leakage.
+- Unauthorized vector retrieval.
+- API abuse.
+- Resource exhaustion.
+- Payment webhook forgery.
+- Billing race conditions.
+- Secret leakage.
+- Dependency vulnerabilities.
+
+Implement:
+
+- Secure authentication.
+- Server-side authorization.
+- Ownership validation.
+- Parameterized database access.
+- Secure headers.
+- Appropriate Content Security Policy.
+- Input sanitization.
+- Schema validation.
+- Request size restrictions.
+- Rate limiting.
+- Private file storage.
+- Credential encryption.
+- Secret redaction.
+- Audit logging.
+- Least-privilege infrastructure access.
+
+For AI security:
+
+- Treat chart images as untrusted inputs.
+- Treat uploaded documents as untrusted inputs.
+- Treat retrieved websites as untrusted inputs.
+- Prevent user content from changing system-level instructions.
+- Do not expose arbitrary command execution.
+- Do not give the model unrestricted database access.
+- Do not give the model access to other users' documents.
+- Restrict tools to explicit, authorized capabilities.
+- Validate structured AI responses.
+- Sanitize rendered output.
+
+Run security checks against our own local application and authorized environments only.
+
+Never use third-party security testing tools against the reference product.
+
+==================================================
+34. PRIVACY AND FINANCIAL COMPLIANCE
+==================================================
+
+The product must be privacy-conscious and appropriate for financial research.
+
+Provide clear explanations of:
+
+- What data is collected.
+- Why data is collected.
+- How uploaded images are processed.
+- Whether external AI providers receive user data.
+- Data storage.
+- Data retention.
+- Analysis history.
+- Personalization.
+- Billing data.
+- Account deletion.
+- Data export.
+
+Do not send user data to unnecessary third-party services.
+
+Avoid logging raw financial screenshots, user conversations, and document contents unless explicitly required and appropriately protected.
+
+Implement an informational financial disclaimer.
+
+Explain that:
+
+- The application provides educational and research information.
+- AI interpretations may be inaccurate.
+- Market data may be delayed or incomplete.
+- Technical indicators do not guarantee future outcomes.
+- Financial losses are possible.
+- Hypothetical scenarios are not guaranteed results.
+- Users should independently verify relevant information.
+
+Do not assume that a disclaimer alone resolves regulatory obligations.
+
+Before public launch, identify applicable requirements for the intended operating jurisdiction and target markets, including potential Indian financial regulatory requirements if the product serves Indian users.
+
+Flag features that may require qualified legal or regulatory review.
+
+Do not enable regulated personalized investment advisory or brokerage functionality without the necessary authorization.
+
+Create compliance documentation and a pre-launch review checklist.
+
+==================================================
+35. PERFORMANCE OPTIMIZATION
+==================================================
+
+Optimize actual measured performance.
+
+Frontend:
+
+- Code splitting.
+- Lazy loading.
+- Image optimization.
+- Font optimization.
+- Minimal client-side bundles.
+- Efficient component rendering.
+- Virtualized long conversations if needed.
+- Appropriate caching.
+- Fast navigation.
+- Loading skeletons.
+
+Backend:
+
+- Efficient database queries.
+- Proper indexes.
+- Connection management.
+- Request timeouts.
+- Background processing for long tasks.
+- Data caching.
+- Controlled concurrency.
+- Bounded retries.
+- Resource quotas.
+
+AI:
+
+- Avoid unnecessary model requests.
+- Use appropriate context limits.
+- Compress images responsibly.
+- Avoid repeatedly embedding unchanged documents.
+- Track token usage.
+- Cache safe deterministic operations.
+- Use model capabilities efficiently.
+- Stream partial user-facing results where appropriate.
+
+Do not guarantee analysis completion within a fixed number of seconds without measured evidence.
+
+Measure and document:
+
+- Upload latency.
+- Analysis latency.
+- Time to first response.
+- Median and tail processing latency.
+- Chat streaming responsiveness.
+- Database query performance.
+- Page load performance.
+
+Target good Core Web Vitals.
+
+Use Lighthouse and browser performance tools.
+
+Clearly distinguish laboratory measurements from actual production-user performance.
+
+==================================================
+36. OBSERVABILITY AND ERROR HANDLING
+==================================================
+
+Implement structured logging and diagnostic tools.
+
+Track:
+
+- Request identifiers.
+- Analysis job identifiers.
+- Provider latency.
+- Provider failures.
+- Job failures.
+- API errors.
+- Database failures.
+- Queue failures.
+- Payment webhook processing.
+- Usage accounting.
+- Storage failures.
+
+Never log:
+
+- Passwords.
+- Session tokens.
+- Raw API keys.
+- Payment credentials.
+- Unnecessarily detailed private content.
+
+Implement:
+
+- User-friendly error messages.
+- Retry controls.
+- Failure states.
+- Health endpoints.
+- Readiness checks.
+- Operational metrics.
+- Graceful shutdown.
+- Error boundaries.
+- Optional monitoring integration.
+
+Separate development debugging from production logging.
+
+Create a troubleshooting guide.
+
+==================================================
+37. DEVELOPMENT ENVIRONMENT AND CONFIGURATION
+==================================================
+
+Provide a complete local development environment.
+
+Create an .env.example file with appropriately documented variables.
+
+Possible variables:
+
+APP_URL=
+DATABASE_URL=
+AUTH_SECRET=
+REDIS_URL=
+STORAGE_ENDPOINT=
+STORAGE_BUCKET=
+STORAGE_ACCESS_KEY=
+STORAGE_SECRET_KEY=
+OPENAI_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+ANTHROPIC_API_KEY=
+OPENROUTER_API_KEY=
+OLLAMA_BASE_URL=
+MARKET_DATA_PROVIDER=
+MARKET_DATA_API_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_PRICE_ID=
+EMAIL_PROVIDER=
+EMAIL_API_KEY=
+EMAIL_FROM=
+AI_PROVIDER=
+AI_MODEL=
+EMBEDDING_PROVIDER=
+EMBEDDING_MODEL=
+APP_ENV=
+DEMO_MODE=
+
+Include only variables actually used by the implementation.
+
+Validate environment variables at startup.
+
+Use safe development defaults where appropriate.
+
+Do not commit a real .env file.
+
+Create Docker configuration for required local services.
+
+Possible services:
+
+- Application.
+- PostgreSQL with pgvector.
+- Redis if required.
+- S3-compatible object storage if required.
+- Background worker if required.
+- Local email testing service if useful.
+
+Ensure the project can be started reliably on the existing development environment.
+
+Support Windows compatibility where feasible.
+
+Create appropriate startup scripts.
+
+Use a local mock AI provider if real credentials are unavailable.
+
+==================================================
+38. TESTING STRATEGY
+==================================================
+
+Do not claim completion without running tests.
+
+A. Unit tests
+
+Test:
+
+- Technical indicators.
+- Chart metadata normalization.
+- Analysis schema validation.
+- Provider capability detection.
+- Prompt construction.
+- Risk-reward calculations.
+- Usage accounting.
+- Billing entitlement logic.
+- File validation.
+- URL validation.
+- Input sanitization.
+- Permission checks.
+
+B. Integration tests
+
+Test:
+
+- Registration.
+- Authentication.
+- Session management.
+- Database persistence.
+- Chart upload.
+- Analysis job processing.
+- AI provider adapters.
+- Conversation persistence.
+- Streaming responses.
+- RAG ingestion.
+- Vector retrieval.
+- Subscription synchronization.
+- Stripe webhook processing.
+- User data deletion.
+
+C. End-to-end tests
+
+Use Playwright.
+
+Test the complete workflow:
+
+1. Open landing page.
+2. Register a user.
+3. Complete onboarding.
+4. Open dashboard.
+5. Upload a sample chart.
+6. Start analysis.
+7. Receive a structured result.
+8. Review available indicators.
+9. Open a follow-up conversation.
+10. Save the analysis.
+11. Open analysis history.
+12. Upload a knowledge document.
+13. Retrieve grounded information from it.
+14. View usage limits.
+15. Open upgrade flow.
+16. Complete supported Stripe test scenarios.
+17. Verify entitlements.
+18. Log out and log back in.
+19. Verify persisted history.
+
+D. Security tests
+
+Test:
+
+- Unauthenticated access.
+- Cross-user access attempts.
+- Unauthorized administrative access.
+- Malicious uploads.
+- Invalid MIME types.
+- Invalid request schemas.
+- Prompt injection attempts.
+- SSRF protections.
+- Forged payment webhooks.
+- Duplicate payment events.
+- Concurrent quota requests.
+- Unauthorized share access.
+- Expired share links.
+
+E. AI evaluation tests
+
+Create original, licensed, or synthetic evaluation charts.
+
+Include:
+
+- Clear uptrend.
+- Clear downtrend.
+- Sideways market.
+- Visible support and resistance.
+- Potential breakout.
+- Potential false breakout.
+- Conflicting indicators.
+- Missing timeframe.
+- Missing price scale.
+- Unreadable chart.
+- Nonfinancial image.
+- Historical screenshot.
+- Mismatched market data.
+- Chart containing malicious textual instructions.
+
+Evaluate:
+
+- Correct symbol extraction.
+- Correct timeframe extraction.
+- Accurate visible observations.
+- Proper uncertainty handling.
+- Schema correctness.
+- Avoidance of fabricated data.
+- Consistency of evidence.
+- Appropriate scenario explanation.
+- Financial safety.
+- Prompt injection resistance.
+
+Do not use AI-generated analysis as the sole ground truth.
+
+Use deterministic calculations and manually verified fixtures wherever possible.
+
+F. Responsive testing
+
+Capture our application's screenshots at representative desktop, tablet, and mobile sizes.
+
+Store them in organized testing and reporting directories.
+
+G. Performance testing
+
+Measure:
+
+- Page performance.
+- API response latency.
+- Concurrent job behavior.
+- Streaming responsiveness.
+- Database performance.
+
+Never mark an unexecuted test as passing.
+
+==================================================
+39. IMPLEMENTATION PHASES
+==================================================
+
+Execute the project in logical phases.
+
+PHASE 0:
+Environment inspection, safety checks, workspace preparation, and existing tool discovery.
+
+PHASE 1:
+Public product research, evidence register, feature inventory, and competitor capability analysis.
+
+PHASE 2:
+AionUi repository audit, licensing review, reusable component selection, and dependency assessment.
+
+PHASE 3:
+Product requirements, architecture, database schema, design system, and implementation roadmap.
+
+PHASE 4:
+Project initialization, infrastructure, database, environment configuration, and development scripts.
+
+PHASE 5:
+Authentication, account management, onboarding, and dashboard shell.
+
+PHASE 6:
+Chart upload, image processing, AI provider abstraction, and structured analysis engine.
+
+PHASE 7:
+Results interface, technical indicator calculations, market data integration, and analysis history.
+
+PHASE 8:
+Streaming AI chat, saved prompts, user preferences, and personalization.
+
+PHASE 9:
+Knowledge-base ingestion, embeddings, vector search, and RAG.
+
+PHASE 10:
+Subscription plans, usage enforcement, Stripe test mode, and billing dashboard.
+
+PHASE 11:
+Administration dashboard, access control, audit logs, and configuration management.
+
+PHASE 12:
+Sharing, embeddable widget, watchlist, and remaining planned functionality.
+
+PHASE 13:
+Public website, responsive refinements, accessibility, and performance improvements.
+
+PHASE 14:
+Comprehensive testing, security audit, bug fixing, and documentation.
+
+PHASE 15:
+Local release verification and deployment preparation.
+
+Do not stop after producing a research document or implementation plan.
+
+After completing research, proceed directly to implementation unless an unavoidable authorization is required.
+
+==================================================
+40. PRIORITY MANAGEMENT
+==================================================
+
+Prioritize the core MVP above secondary features.
+
+P0 - Required working MVP:
+
+- Authentication.
+- User onboarding.
+- Dashboard.
+- Chart upload.
+- Vision provider integration.
+- Structured AI analysis.
+- Deterministic indicator calculations when data is available.
+- Analysis results.
+- Analysis history.
+- Streaming follow-up chat.
+- Database persistence.
+- Secure user isolation.
+- Usage limits.
+- Stripe test-mode integration.
+- Basic administration.
+- Responsive design.
+- Working local development setup.
+
+P1 - Required extended product:
+
+- Knowledge base.
+- Document ingestion.
+- RAG.
+- Saved prompts.
+- User preferences.
+- Personalization.
+- Market-data integration.
+- Sharing.
+- Embeddable widget.
+- Data export.
+- Extended admin controls.
+
+P2 - Additional improvements:
+
+- Watchlist.
+- PDF reports.
+- Analysis comparison.
+- Additional languages.
+- Advanced chart overlays.
+- Additional AI providers.
+- Educational resources.
+- Advanced analytics.
+
+P1 features are part of the requested product and must not be silently omitted.
+
+If environment limitations prevent completion, explicitly report the incomplete feature and its exact status.
+
+Never substitute an attractive UI for a nonfunctional backend.
+
+==================================================
+41. GIT AND CODE QUALITY
+==================================================
+
+Use Git appropriately.
+
+Before making changes:
+
+- Inspect the current branch.
+- Check working tree status.
+- Identify unrelated user changes.
+- Preserve uncommitted user work.
+
+Create a dedicated implementation branch if appropriate.
+
+Use meaningful local commits at logical milestones.
+
+Maintain:
+
+- Consistent formatting.
+- ESLint or appropriate linting.
+- Strict TypeScript settings.
+- Clear module boundaries.
+- Reusable components.
+- Explicit interfaces.
+- Maintainable naming.
+- Minimal duplication.
+- Proper error handling.
+
+Do not create giant files containing unrelated functionality.
+
+Do not use unnecessary type suppressions.
+
+Do not disable failing tests merely to obtain a green test run.
+
+Do not weaken security checks to make development easier.
+
+Run secret scanning before preparing any repository for publication.
+
+Do not push to a remote repository without permission.
+
+==================================================
+42. DOCUMENTATION REQUIREMENTS
+==================================================
+
+Create a detailed README.md covering:
+
+- Product overview.
+- Features.
+- Screenshots of our application.
+- Architecture.
+- Technology stack.
+- System requirements.
+- Installation.
+- Environment variables.
+- Database setup.
+- Migrations.
+- Seed data.
+- Development startup.
+- Mock AI provider.
+- Real AI provider setup.
+- Market data setup.
+- RAG setup.
+- Stripe test-mode setup.
+- Admin account setup.
+- Testing.
+- Troubleshooting.
+- Security.
+- Financial limitations.
+- Deployment preparation.
+- License and attribution.
+
+Create additional documents:
+
+docs/architecture/system-architecture.md
+docs/architecture/database-design.md
+docs/architecture/aionui-integration.md
+docs/architecture/decision-records.md
+docs/ai/provider-integration.md
+docs/ai/chart-analysis-pipeline.md
+docs/ai/prompt-management.md
+docs/ai/evaluation-report.md
+docs/api/api-reference.md
+docs/security/threat-model.md
+docs/security/security-audit.md
+docs/compliance/pre-launch-checklist.md
+docs/deployment/local-deployment.md
+docs/deployment/production-deployment.md
+docs/setup/environment-variables.md
+docs/user-guides/getting-started.md
+
+Keep documentation synchronized with actual implementation.
+
+Do not document hypothetical features as already implemented.
+
+==================================================
+43. DEPLOYMENT PREPARATION
+==================================================
+
+First deliver a working local application.
+
+After local verification, prepare deployment configuration.
+
+Evaluate appropriate hosting options based on the selected architecture:
+
+- Vercel.
+- Railway.
+- Render.
+- Fly.io.
+- Docker-compatible VPS.
+- Other suitable services.
+
+Evaluate:
+
+- Streaming support.
+- Background worker support.
+- Database availability.
+- Object storage.
+- Persistent storage.
+- Deployment costs.
+- Regional availability.
+- Security.
+- Scalability.
+- Environment management.
+
+Prepare:
+
+- Production Dockerfile.
+- Environment configuration.
+- Database migration strategy.
+- Health checks.
+- CI pipeline.
+- Build scripts.
+- Deployment documentation.
+- Backup strategy.
+- Restore strategy.
+- Rollback procedure.
+- Logging configuration.
+- Production security checklist.
+
+Do not deploy publicly without explicit approval.
+
+Do not activate paid infrastructure without permission.
+
+Do not enable production payment processing.
+
+==================================================
+44. DEFINITION OF DONE
+==================================================
+
+The application may only be described as locally complete when the applicable requirements are verified.
+
+Required conditions:
+
+1. Dependencies install successfully.
+2. Database migrations execute successfully.
+3. Required local services start successfully.
+4. Application starts without critical runtime errors.
+5. Registration and login work.
+6. Protected routes enforce authorization.
+7. Chart upload works.
+8. Analysis processing works.
+9. Structured results render correctly.
+10. Analysis history persists.
+11. Streaming conversations work.
+12. User data is isolated.
+13. Knowledge documents can be ingested.
+14. RAG retrieval returns authorized relevant information.
+15. Saved prompts work.
+16. Subscription entitlements are enforced.
+17. Stripe test integration is implemented and tested to the extent credentials permit.
+18. Administration is protected.
+19. Responsive layouts are verified.
+20. Critical accessibility issues are addressed.
+21. Security tests have been executed.
+22. Relevant unit tests pass.
+23. Relevant integration tests pass.
+24. Relevant end-to-end tests pass.
+25. Production build succeeds.
+26. Documentation reflects actual behavior.
+27. No real credentials are committed.
+28. Known limitations are documented.
+29. Original assets and required license notices are included.
+30. Local startup and deployment preparation are documented.
+
+If a requirement cannot be verified, mark it as:
+
+- NOT STARTED.
+- IN PROGRESS.
+- IMPLEMENTED BUT UNTESTED.
+- MOCK VERIFIED.
+- REAL INTEGRATION VERIFIED.
+- BLOCKED.
+- FAILED.
+- PASSED.
+
+Do not report blanket completion percentages without a measurable basis.
+
+==================================================
+45. FINAL APPLICATION REVIEW
+==================================================
+
+Before concluding, perform a comprehensive review.
+
+Compare our application with the original product requirements and verified public capabilities.
+
+Create a feature comparison matrix containing:
+
+- Feature name.
+- Reference product capability.
+- Evidence classification.
+- Our implementation.
+- Current status.
+- Test evidence.
+- Known limitation.
+- Improvement opportunity.
+
+Identify:
+
+- Missing functionality.
+- Broken interactions.
+- Incorrect assumptions.
+- Unnecessary dependencies.
+- Performance issues.
+- Security weaknesses.
+- Incomplete provider integrations.
+- UI inconsistencies.
+- Mobile layout issues.
+- Documentation gaps.
+
+Fix critical and high-priority problems before concluding.
+
+Do not leave obvious broken functionality unresolved without documenting the blocker.
+
+==================================================
+46. FINAL DELIVERY REPORT FORMAT
+==================================================
+
+After completing the work, return one comprehensive final report inside a single code block.
+
+Use the following structure:
+
+PROJECT STATUS
+
+- Project name:
+- Workspace location:
+- Current branch:
+- Local application URL:
+- Backend URL:
+- Admin URL:
+- Build status:
+- Development mode:
+- Production readiness:
+
+REFERENCE RESEARCH
+
+- Sources reviewed:
+- Public features verified:
+- Authorized observations:
+- Unverified features:
+- Research restrictions:
+- Research folder location:
+
+TOOLS USED
+
+- Existing tools detected:
+- REA installation status:
+- REA investigation results:
+- Newly installed tools:
+- Tool versions:
+- Installation failures:
+
+AIONUI AUDIT
+
+- Repository commit:
+- License:
+- Reused components:
+- Modified components:
+- Excluded components:
+- Attribution files:
+
+ARCHITECTURE
+
+- Frontend:
+- Backend:
+- Database:
+- Object storage:
+- AI providers:
+- Embedding providers:
+- Market data providers:
+- Queue:
+- Authentication:
+- Billing:
+- Deployment approach:
+
+FEATURE IMPLEMENTATION
+
+- Completed features:
+- Partially completed features:
+- Mock-only features:
+- Real verified integrations:
+- Blocked features:
+- Not implemented features:
+
+AI CHART ANALYSIS
+
+- Image processing:
+- Vision integration:
+- Chart interpretation:
+- Technical indicators:
+- Scenario generation:
+- Data validation:
+- Market-data integration:
+- Evaluation results:
+- Known accuracy limitations:
+
+UI/UX
+
+- Implemented pages:
+- Design system:
+- Responsive testing:
+- Accessibility results:
+- Screenshot locations:
+
+DATABASE
+
+- Schema status:
+- Migration status:
+- Seed data status:
+- Tenant isolation tests:
+
+PAYMENTS
+
+- Stripe integration:
+- Test checkout status:
+- Webhook status:
+- Entitlement verification:
+- Credential requirements:
+
+TEST RESULTS
+
+- Unit tests:
+- Integration tests:
+- End-to-end tests:
+- AI evaluation tests:
+- Security tests:
+- Accessibility tests:
+- Performance tests:
+- Failed or skipped tests:
+
+CODE QUALITY
+
+- Type checking:
+- Linting:
+- Build:
+- Dependency audit:
+- Secret scanning:
+
+FILES AND FOLDERS
+
+- Important source files:
+- Research files:
+- Design files:
+- Configuration files:
+- Documentation files:
+- Test files:
+- Reports:
+
+SECURITY AND COMPLIANCE
+
+- Implemented protections:
+- Remaining vulnerabilities:
+- Privacy considerations:
+- Financial regulatory review requirements:
+
+RUNNING APPLICATION
+
+- Local services:
+- Running processes:
+- Local URLs:
+- Demo mode:
+- Real integration mode:
+
+USER ACTION REQUIRED
+
+List only genuinely unavoidable user actions.
+
+Do not instruct me to perform work that you can complete yourself.
+
+KNOWN LIMITATIONS
+
+Describe every important incomplete, unverified, or blocked feature.
+
+DECISIONS MADE
+
+List major technical and product decisions made without explicit user instructions, including their reasoning and tradeoffs.
+
+FINAL VERDICT
+
+State whether the application is:
+
+- Not yet functional.
+- Functional prototype.
+- Locally working MVP.
+- Extended MVP.
+- Staging-ready.
+- Production-ready subject to explicitly listed reviews and approvals.
+
+Support this verdict with actual execution evidence.
+
+Do not exaggerate the completion status.
+
+==================================================
+47. START EXECUTION
+==================================================
+
+Begin now.
+
+First inspect the current development environment and locate the existing Reverse Engineer Anything installation.
+
+Then conduct permitted public research on BullGPT and audit the AionUi open-source repository.
+
+Create the organized research directories and evidence documentation.
+
+Determine the appropriate architecture.
+
+Proceed directly to implementation.
+
+Build the application incrementally, run it locally, test every major workflow, fix discovered problems, and prepare deployment documentation.
+
+Your objective is to deliver a genuinely working, secure, maintainable, independently developed AI financial chart analysis SaaS with original branding and functionality comparable to the documented reference product.
+
+Do not stop at planning.
+
+Do not deliver only a frontend.
+
+Do not fabricate completed integrations.
+
+Do not provide an incomplete mockup disguised as a working product.
+
+Use the best available authorized tools and engineering practices.
+
+Complete everything feasible within the available environment, and clearly disclose any remaining blockers.
+
+Begin execution immediately.

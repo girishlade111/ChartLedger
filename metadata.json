@@ -1,0 +1,6 @@
+{
+  "name": "ChartLedger",
+  "description": "AI-powered financial chart analysis and trading research workspace with structured technical analysis, deterministic indicators, RAG knowledge base, and streaming research chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
