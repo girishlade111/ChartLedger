@@ -330,6 +330,7 @@ router.patch('/api/user/preferences', requireAuth, async (req: AuthRequest, res)
       preferredIndicators: z.array(z.string().max(40)).max(12).optional(),
       language: z.string().max(32).optional(),
       personalizationEnabled: z.boolean().optional(),
+      dashboardWidgetOrder: z.array(z.string().max(40)).max(12).optional(),
       onboardingCompleted: z.boolean().optional(),
       reset: z.boolean().optional(),
     });
@@ -346,6 +347,9 @@ router.patch('/api/user/preferences', requireAuth, async (req: AuthRequest, res)
       ? {
           personalizationEnabled: true,
           ...(existingPrefs.notifications ? { notifications: existingPrefs.notifications } : {}),
+          ...(existingPrefs.dashboardWidgetOrder
+            ? { dashboardWidgetOrder: existingPrefs.dashboardWidgetOrder }
+            : {}),
         }
       : { ...existingPrefs, ...prefFields };
 

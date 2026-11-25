@@ -13,6 +13,13 @@ import {
   buildPortfolioMarketSentiment,
   computeAssetTechnicalSentiment,
 } from '../../src/utils/marketSentiment';
+import {
+  DEFAULT_DASHBOARD_WIDGET_ORDER,
+  formatHoldings30dChartData,
+  moveDashboardWidget,
+  normalizeDashboardOrder,
+  reorderDashboardWidgets,
+} from '../../src/utils/dashboardLayout';
 import type { OhlcvCandle } from '../../src/utils/indicators';
 
 test('evaluatePriceAlert triggers accurately for above/below conditions and respects paused/triggered status', () => {
@@ -266,5 +273,40 @@ test('computeAssetTechnicalSentiment and buildPortfolioMarketSentiment score upt
   );
   assert.equal(portfolioSentiment.assets[2].available, false);
 });
+
+test('dashboardLayout utilities normalize, drag-reorder, move, and format 30-day Recharts data accurately', () => {
+  const normalized = normalizeDashboardOrder(['market-sentiment', 'invalid-id', 'market-sentiment']);
+  assert.equal(normalized[0], 'market-sentiment');
+  assert.equal(normalized.length, DEFAULT_DASHBOARD_WIDGET_ORDER.length);
+  assert.ok(normalized.includes('holdings-value-30d'));
+
+  const reordered = reorderDashboardWidgets(
+    DEFAULT_DASHBOARD_WIDGET_ORDER,
+    'holdings-value-30d',
+    'kpi-overview'
+  );
+  assert.equal(reordered[0], 'holdings-value-30d');
+  assert.equal(reordered[1], 'kpi-overview');
+
+  const movedDown = moveDashboardWidget(reordered, 'holdings-value-30d', 'down');
+  assert.equal(movedDown[1], 'holdings-value-30d');
+
+  const chartStats = formatHoldings30dChartData(
+    [
+      { time: 1762041600, value: 30000, costBasis: 28000, returnPercent: 7.14 },
+      { time: 1762128000, value: 36000, costBasis: 28000, returnPercent: 28.57 },
+      { time: 1762214400, value: 33000, costBasis: 28000, returnPercent: 17.86 },
+    ],
+    28000
+  );
+  assert.equal(chartStats.points.length, 3);
+  assert.equal(chartStats.highValue, 36000);
+  assert.equal(chartStats.lowValue, 30000);
+  assert.equal(chartStats.changeValue, 3000);
+  assert.equal(chartStats.changePercent, 10);
+  assert.ok(chartStats.yDomainMin <= 28000);
+  assert.ok(chartStats.yDomainMax >= 36000);
+});
+
 
 

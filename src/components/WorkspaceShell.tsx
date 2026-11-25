@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   Bell,
   BookOpen,
@@ -7,6 +9,7 @@ import {
   CreditCard,
   Eye,
   FilePlus2,
+  GripVertical,
   HelpCircle,
   History,
   LayoutDashboard,
@@ -14,6 +17,7 @@ import {
   Menu,
   MessageSquare,
   Moon,
+  RotateCcw,
   Settings,
   Shield,
   Sparkles,
@@ -23,11 +27,20 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
+import {
+  DASHBOARD_WIDGET_LABELS,
+  DEFAULT_DASHBOARD_WIDGET_ORDER,
+  moveDashboardWidget,
+  normalizeDashboardOrder,
+  reorderDashboardWidgets,
+  type DashboardWidgetId,
+} from '../utils/dashboardLayout';
 import { NewAnalysisView } from './workspace/NewAnalysisView';
 import { ResearchChatView } from './workspace/ResearchChatView';
 import { KnowledgeBaseView, SavedPromptsView } from './workspace/KnowledgeAndPromptsView';
 import { AnalysisHistoryView, WatchlistView } from './workspace/HistoryAndWatchlistView';
 import { PortfolioSummaryWidget } from './workspace/PortfolioSummaryWidget';
+import { HoldingsValue30dSection } from './workspace/HoldingsValue30dSection';
 import { MarketSentimentWidget } from './workspace/MarketSentimentWidget';
 import { PriceAlertsView } from './workspace/PriceAlertsView';
 import { AlertHistoryView } from './workspace/AlertHistoryView';
@@ -58,7 +71,7 @@ interface WorkspaceShellProps {
 }
 
 export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
-  const { user, theme, toggleTheme, logout } = useAuth();
+  const { user, setUser, theme, toggleTheme, logout } = useAuth();
   const [section, setSection] = useState<WorkspaceSection>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -75,6 +88,39 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
   const [alertDraftPrice, setAlertDraftPrice] = useState<number | null>(null);
   const [triggeredAlertsCount, setTriggeredAlertsCount] = useState(0);
   const [holdingsVersion, setHoldingsVersion] = useState(0);
+
+  const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetId[]>(() =>
+    normalizeDashboardOrder(user?.preferencesJson?.dashboardWidgetOrder)
+  );
+  const [draggedWidget, setDraggedWidget] = useState<DashboardWidgetId | null>(null);
+  const [dragOverWidget, setDragOverWidget] = useState<DashboardWidgetId | null>(null);
+  const [layoutSavedNotice, setLayoutSavedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setWidgetOrder(normalizeDashboardOrder(user?.preferencesJson?.dashboardWidgetOrder));
+  }, [user?.preferencesJson?.dashboardWidgetOrder]);
+
+  const persistWidgetOrder = useCallback(
+    async (nextOrder: DashboardWidgetId[], noticeText = 'Dashboard layout saved.') => {
+      setWidgetOrder(nextOrder);
+      setLayoutSavedNotice(noticeText);
+      try {
+        const res = await apiFetch<{ preferencesJson: Record<string, unknown> }>(
+          '/api/user/preferences',
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ dashboardWidgetOrder: nextOrder }),
+          }
+        );
+        setUser((prev) => (prev ? { ...prev, preferencesJson: res.preferencesJson } : prev));
+      } catch (err) {
+        console.error('Failed to persist dashboard layout:', err);
+      }
+    },
+    [setUser]
+  );
+
+  const isCustomLayout = widgetOrder.some((id, idx) => DEFAULT_DASHBOARD_WIDGET_ORDER[idx] !== id);
 
   const loadWorkspaceData = useCallback(async () => {
     try {
@@ -302,172 +348,315 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
         {/* Main Workspace Viewport */}
         <main className="mx-auto w-full max-w-6xl flex-1 p-5 lg:p-8">
           {section === 'overview' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                  <div className="text-xs text-zinc-500">Analyses This Month</div>
-                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                    {billingSummary?.usage.analysesCount ?? analyses.length}
-                    <span className="text-xs font-normal text-zinc-500">
-                      {' '}
-                      / {billingSummary?.plan.analysesLimit ?? 15}
-                    </span>
-                  </div>
+            <div className="space-y-5" data-testid="overview-widgets-container">
+              {/* Layout Customization Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-xs dark:border-zinc-800 dark:bg-[#111114]">
+                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                  <GripVertical className="h-3.5 w-3.5 text-zinc-400" aria-hidden="true" />
+                  <span>Drag any widget handle (or use arrows) to customize your dashboard layout.</span>
                 </div>
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                  <div className="text-xs text-zinc-500">AI Chat Messages</div>
-                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                    {billingSummary?.usage.messagesCount ?? 0}
-                    <span className="text-xs font-normal text-zinc-500">
-                      {' '}
-                      / {billingSummary?.plan.messagesLimit ?? 75}
+                <div className="flex items-center gap-3">
+                  {layoutSavedNotice && (
+                    <span role="status" className="font-medium text-emerald-600 dark:text-emerald-400">
+                      {layoutSavedNotice}
                     </span>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                  <div className="text-xs text-zinc-500">Saved Favorites</div>
-                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                    {analyses.filter((a) => a.isFavorite).length}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                  <div className="text-xs text-zinc-500">Indexed Knowledge Docs</div>
-                  <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                    {billingSummary?.usage.kbDocsCount ?? 0}
-                    <span className="text-xs font-normal text-zinc-500">
-                      {' '}
-                      / {billingSummary?.plan.kbDocsLimit ?? 5}
-                    </span>
-                  </div>
+                  )}
+                  {isCustomLayout && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void persistWidgetOrder(
+                          [...DEFAULT_DASHBOARD_WIDGET_ORDER],
+                          'Default dashboard layout restored.'
+                        )
+                      }
+                      className="inline-flex items-center gap-1 font-medium text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    >
+                      <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                      Reset Layout
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setSection('new-analysis')}
-                  className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-5 text-left transition-colors hover:bg-emerald-600/15"
-                >
-                  <FilePlus2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <div className="mt-2 font-display text-sm font-semibold">
-                    Upload Chart Screenshot
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    Run the 8-stage structured analysis pipeline with deterministic OHLCV indicators.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSection('chat')}
-                  className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
-                >
-                  <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-                  <div className="mt-2 font-display text-sm font-semibold">
-                    Open Streaming Research Chat
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    Interrogate saved chart setups with private knowledge-base RAG grounding.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSection('knowledge')}
-                  className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
-                >
-                  <BookOpen className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-                  <div className="mt-2 font-display text-sm font-semibold">
-                    Index Trading Playbooks
-                  </div>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    Add private strategy checklists and notes to cite in future chart analyses.
-                  </p>
-                </button>
-              </div>
+              {/* Draggable Dashboard Widgets */}
+              {widgetOrder.map((widgetId, index) => {
+                const isDragging = draggedWidget === widgetId;
+                const isDragOver = dragOverWidget === widgetId && draggedWidget !== widgetId;
+                const label = DASHBOARD_WIDGET_LABELS[widgetId];
 
-              {/* Portfolio Holdings & Performance Over Time Widget */}
-              <PortfolioSummaryWidget
-                theme={theme}
-                onSetAlertForSymbol={(sym, price) => {
-                  setAlertDraftSymbol(sym);
-                  setAlertDraftPrice(price ?? null);
-                  setSection('alerts');
-                }}
-                onAnalyzeSymbol={(sym) => {
-                  setAnalyzeSymbol(sym);
-                  setSection('new-analysis');
-                }}
-                onHoldingsChange={() => setHoldingsVersion((v) => v + 1)}
-              />
-
-              {/* Market Sentiment Technical Indicator Widget */}
-              <MarketSentimentWidget
-                refreshTrigger={holdingsVersion}
-                onAnalyzeSymbol={(sym) => {
-                  setAnalyzeSymbol(sym);
-                  setSection('new-analysis');
-                }}
-              />
-
-              {/* Recent Analyses */}
-              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-display text-base font-semibold">Recent Chart Analyses</h2>
-                  <button
-                    type="button"
-                    onClick={() => setSection('history')}
-                    className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-                  >
-                    View all →
-                  </button>
-                </div>
-                {analyses.length === 0 ? (
-                  <div className="py-10 text-center text-xs text-zinc-500">
-                    <BarChart3 className="mx-auto mb-2 h-6 w-6 text-zinc-400" />
-                    No analyses recorded yet. Click “Upload Chart Screenshot” to run your first
-                    structured report.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
-                    {analyses.slice(0, 5).map((rec) => (
-                      <div
-                        key={rec.id}
-                        className="flex flex-wrap items-center justify-between gap-2 py-3 text-xs"
-                      >
-                        <div>
-                          <div className="font-medium text-zinc-950 dark:text-zinc-50">
-                            {rec.title}
-                          </div>
-                          <div className="text-[11px] text-zinc-500">
-                            {rec.symbol || 'Unspecified'} · {rec.timeframe || 'TF'} ·{' '}
-                            {new Date(rec.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`font-semibold capitalize ${
-                              rec.marketBias === 'bullish'
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : rec.marketBias === 'bearish'
-                                  ? 'text-red-600 dark:text-red-400'
-                                  : 'text-amber-600 dark:text-amber-400'
-                            }`}
-                          >
-                            {rec.marketBias}
+                let body: React.ReactNode = null;
+                if (widgetId === 'kpi-overview') {
+                  body = (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                        <div className="text-xs text-zinc-500">Analyses This Month</div>
+                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                          {billingSummary?.usage.analysesCount ?? analyses.length}
+                          <span className="text-xs font-normal text-zinc-500">
+                            {' '}
+                            / {billingSummary?.plan.analysesLimit ?? 15}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenChat(rec.id)}
-                            className="text-emerald-600 hover:underline dark:text-emerald-400"
-                          >
-                            Chat
-                          </button>
                         </div>
                       </div>
-                    ))}
+                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                        <div className="text-xs text-zinc-500">AI Chat Messages</div>
+                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                          {billingSummary?.usage.messagesCount ?? 0}
+                          <span className="text-xs font-normal text-zinc-500">
+                            {' '}
+                            / {billingSummary?.plan.messagesLimit ?? 75}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                        <div className="text-xs text-zinc-500">Saved Favorites</div>
+                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                          {analyses.filter((a) => a.isFavorite).length}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                        <div className="text-xs text-zinc-500">Indexed Knowledge Docs</div>
+                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                          {billingSummary?.usage.kbDocsCount ?? 0}
+                          <span className="text-xs font-normal text-zinc-500">
+                            {' '}
+                            / {billingSummary?.plan.kbDocsLimit ?? 5}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else if (widgetId === 'quick-actions') {
+                  body = (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => setSection('new-analysis')}
+                        className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-5 text-left transition-colors hover:bg-emerald-600/15"
+                      >
+                        <FilePlus2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <div className="mt-2 font-display text-sm font-semibold">
+                          Upload Chart Screenshot
+                        </div>
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                          Run the 8-stage structured analysis pipeline with deterministic OHLCV
+                          indicators.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSection('chat')}
+                        className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
+                      >
+                        <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                        <div className="mt-2 font-display text-sm font-semibold">
+                          Open Streaming Research Chat
+                        </div>
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                          Interrogate saved chart setups with private knowledge-base RAG grounding.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSection('knowledge')}
+                        className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
+                      >
+                        <BookOpen className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                        <div className="mt-2 font-display text-sm font-semibold">
+                          Index Trading Playbooks
+                        </div>
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                          Add private strategy checklists and notes to cite in future chart
+                          analyses.
+                        </p>
+                      </button>
+                    </div>
+                  );
+                } else if (widgetId === 'portfolio-summary') {
+                  body = (
+                    <PortfolioSummaryWidget
+                      theme={theme}
+                      onSetAlertForSymbol={(sym, price) => {
+                        setAlertDraftSymbol(sym);
+                        setAlertDraftPrice(price ?? null);
+                        setSection('alerts');
+                      }}
+                      onAnalyzeSymbol={(sym) => {
+                        setAnalyzeSymbol(sym);
+                        setSection('new-analysis');
+                      }}
+                      onHoldingsChange={() => setHoldingsVersion((v) => v + 1)}
+                    />
+                  );
+                } else if (widgetId === 'holdings-value-30d') {
+                  body = (
+                    <HoldingsValue30dSection theme={theme} refreshTrigger={holdingsVersion} />
+                  );
+                } else if (widgetId === 'market-sentiment') {
+                  body = (
+                    <MarketSentimentWidget
+                      refreshTrigger={holdingsVersion}
+                      onAnalyzeSymbol={(sym) => {
+                        setAnalyzeSymbol(sym);
+                        setSection('new-analysis');
+                      }}
+                    />
+                  );
+                } else if (widgetId === 'recent-analyses') {
+                  body = (
+                    <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h2 className="font-display text-base font-semibold">
+                          Recent Chart Analyses
+                        </h2>
+                        <button
+                          type="button"
+                          onClick={() => setSection('history')}
+                          className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                        >
+                          View all →
+                        </button>
+                      </div>
+                      {analyses.length === 0 ? (
+                        <div className="py-10 text-center text-xs text-zinc-500">
+                          <BarChart3 className="mx-auto mb-2 h-6 w-6 text-zinc-400" />
+                          No analyses recorded yet. Click “Upload Chart Screenshot” to run your
+                          first structured report.
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                          {analyses.slice(0, 5).map((rec) => (
+                            <div
+                              key={rec.id}
+                              className="flex flex-wrap items-center justify-between gap-2 py-3 text-xs"
+                            >
+                              <div>
+                                <div className="font-medium text-zinc-950 dark:text-zinc-50">
+                                  {rec.title}
+                                </div>
+                                <div className="text-[11px] text-zinc-500">
+                                  {rec.symbol || 'Unspecified'} · {rec.timeframe || 'TF'} ·{' '}
+                                  {new Date(rec.createdAt).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`font-semibold capitalize ${
+                                    rec.marketBias === 'bullish'
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : rec.marketBias === 'bearish'
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-amber-600 dark:text-amber-400'
+                                  }`}
+                                >
+                                  {rec.marketBias}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenChat(rec.id)}
+                                  className="text-emerald-600 hover:underline dark:text-emerald-400"
+                                >
+                                  Chat
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={widgetId}
+                    data-testid={`dashboard-widget-${widgetId}`}
+                    data-widget-id={widgetId}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggedWidget(widgetId);
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', widgetId);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      if (dragOverWidget !== widgetId) {
+                        setDragOverWidget(widgetId);
+                      }
+                    }}
+                    onDragLeave={() => {
+                      if (dragOverWidget === widgetId) {
+                        setDragOverWidget(null);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const sourceId =
+                        draggedWidget || (e.dataTransfer.getData('text/plain') as DashboardWidgetId);
+                      setDraggedWidget(null);
+                      setDragOverWidget(null);
+                      if (sourceId && sourceId !== widgetId) {
+                        const next = reorderDashboardWidgets(widgetOrder, sourceId, widgetId);
+                        void persistWidgetOrder(next);
+                      }
+                    }}
+                    onDragEnd={() => {
+                      setDraggedWidget(null);
+                      setDragOverWidget(null);
+                    }}
+                    className={`rounded-xl transition-all ${
+                      isDragging ? 'opacity-50' : 'opacity-100'
+                    } ${
+                      isDragOver
+                        ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-[#09090B]'
+                        : ''
+                    }`}
+                  >
+                    {/* Subtle Drag Handle Strip */}
+                    <div className="mb-1.5 flex items-center justify-between px-1 text-[11px] text-zinc-500">
+                      <div
+                        data-testid={`drag-handle-${widgetId}`}
+                        className="inline-flex cursor-grab items-center gap-1.5 font-medium active:cursor-grabbing"
+                        title={`Drag to reorder ${label}`}
+                      >
+                        <GripVertical className="h-3.5 w-3.5 text-zinc-400" aria-hidden="true" />
+                        <span>{label}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          aria-label={`Move ${label} up`}
+                          onClick={() =>
+                            void persistWidgetOrder(moveDashboardWidget(widgetOrder, widgetId, 'up'))
+                          }
+                          className="rounded p-1 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900 disabled:opacity-30 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          title="Move widget up"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === widgetOrder.length - 1}
+                          aria-label={`Move ${label} down`}
+                          onClick={() =>
+                            void persistWidgetOrder(
+                              moveDashboardWidget(widgetOrder, widgetId, 'down')
+                            )
+                          }
+                          className="rounded p-1 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900 disabled:opacity-30 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          title="Move widget down"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    {body}
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
           )}
 

@@ -551,7 +551,35 @@ test('Full-stack API, Security, Tenant Isolation, RAG, SSE & Billing Integration
     assert.equal(sentB.data.sentiment.totalHoldingsCount, 0);
     assert.equal(sentB.data.sentiment.overallScore, null);
   });
+
+  await t.test('16. Custom dashboard widget order persists per user in PostgreSQL preferences', async () => {
+    const customOrder = [
+      'holdings-value-30d',
+      'market-sentiment',
+      'portfolio-summary',
+      'kpi-overview',
+      'quick-actions',
+      'recent-analyses',
+    ];
+    const saveRes = await reqJson('/api/user/preferences', {
+      method: 'PATCH',
+      token: tokenA,
+      body: { dashboardWidgetOrder: customOrder },
+    });
+    assert.equal(saveRes.status, 200);
+    assert.deepEqual(saveRes.data.preferencesJson.dashboardWidgetOrder, customOrder);
+
+    const meA = await reqJson('/api/user/profile', { token: tokenA });
+    assert.equal(meA.status, 200);
+    assert.deepEqual(meA.data.preferencesJson.dashboardWidgetOrder, customOrder);
+
+    // User B does not inherit User A's layout
+    const meB = await reqJson('/api/user/profile', { token: tokenB });
+    assert.equal(meB.status, 200);
+    assert.equal(meB.data.preferencesJson.dashboardWidgetOrder, undefined);
+  });
 });
+
 
 
 
