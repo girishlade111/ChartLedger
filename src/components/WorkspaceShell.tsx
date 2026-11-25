@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BarChart3,
+  Bell,
   BookOpen,
   CreditCard,
   Eye,
@@ -25,6 +26,8 @@ import { NewAnalysisView } from './workspace/NewAnalysisView';
 import { ResearchChatView } from './workspace/ResearchChatView';
 import { KnowledgeBaseView, SavedPromptsView } from './workspace/KnowledgeAndPromptsView';
 import { AnalysisHistoryView, WatchlistView } from './workspace/HistoryAndWatchlistView';
+import { PortfolioSummaryWidget } from './workspace/PortfolioSummaryWidget';
+import { PriceAlertsView } from './workspace/PriceAlertsView';
 import {
   AdminDashboardView,
   BillingAndWidgetsView,
@@ -38,6 +41,7 @@ export type WorkspaceSection =
   | 'history'
   | 'saved'
   | 'watchlist'
+  | 'alerts'
   | 'knowledge'
   | 'prompts'
   | 'billing'
@@ -63,19 +67,28 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
   const [chatAnalysisId, setChatAnalysisId] = useState<string | null>(null);
   const [chatInitialPrompt, setChatInitialPrompt] = useState<string | null>(null);
   const [analyzeSymbol, setAnalyzeSymbol] = useState<string | undefined>(undefined);
+  const [alertDraftSymbol, setAlertDraftSymbol] = useState<string | undefined>(undefined);
+  const [alertDraftPrice, setAlertDraftPrice] = useState<number | null>(null);
+  const [triggeredAlertsCount, setTriggeredAlertsCount] = useState(0);
 
   const loadWorkspaceData = useCallback(async () => {
     try {
-      const [aRes, pRes, bRes, provRes] = await Promise.all([
+      const [aRes, pRes, bRes, provRes, alertRes] = await Promise.all([
         apiFetch<{ analyses: any[] }>('/api/analyses'),
         apiFetch<{ prompts: any[] }>('/api/prompts'),
         apiFetch('/api/billing/subscription'),
         apiFetch<{ providers: any[] }>('/api/providers'),
+        apiFetch<{ alerts: Array<{ status: string }> }>('/api/alerts').catch(() => ({
+          alerts: [],
+        })),
       ]);
       setAnalyses(aRes.analyses);
       setPrompts(pRes.prompts);
       setBillingSummary(bRes);
       setProviders(provRes.providers);
+      setTriggeredAlertsCount(
+        alertRes.alerts.filter((al) => al.status === 'triggered').length
+      );
     } catch (err) {
       console.error('Workspace load error:', err);
     }
@@ -98,6 +111,7 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
     { id: 'history', label: 'Analysis History', icon: History },
     { id: 'saved', label: 'Saved Analyses', icon: Star },
     { id: 'watchlist', label: 'Watchlist', icon: Eye },
+    { id: 'alerts', label: 'Price Alerts', icon: Bell },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'prompts', label: 'Saved Prompts', icon: Sparkles },
     { id: 'billing', label: 'Usage & Billing', icon: CreditCard },
@@ -150,7 +164,17 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{item.label}</span>
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {item.id === 'alerts' && triggeredAlertsCount > 0 && (
+                    <span
+                      aria-label={`${triggeredAlertsCount} triggered alerts`}
+                      className={`font-mono text-[10px] font-bold tabular-nums ${
+                        isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'
+                      }`}
+                    >
+                      {triggeredAlertsCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -242,6 +266,21 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                 {billingSummary.plan.analysesLimit} charts
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setSection('alerts')}
+              aria-label="Open real-time price alerts"
+              className="relative rounded-lg border border-zinc-200 p-2 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              title="Price Alerts"
+            >
+              <Bell className="h-4 w-4" />
+              {triggeredAlertsCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 font-mono text-[9px] font-bold text-white">
+                  {triggeredAlertsCount}
+                </span>
+              )}
+            </button>
 
             <button
               type="button"
@@ -339,6 +378,20 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                   </p>
                 </button>
               </div>
+
+              {/* Portfolio Holdings & Performance Over Time Widget */}
+              <PortfolioSummaryWidget
+                theme={theme}
+                onSetAlertForSymbol={(sym, price) => {
+                  setAlertDraftSymbol(sym);
+                  setAlertDraftPrice(price ?? null);
+                  setSection('alerts');
+                }}
+                onAnalyzeSymbol={(sym) => {
+                  setAnalyzeSymbol(sym);
+                  setSection('new-analysis');
+                }}
+              />
 
               {/* Recent Analyses */}
               <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
@@ -449,6 +502,27 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                 setAnalyzeSymbol(sym);
                 setSection('new-analysis');
               }}
+              onSetAlertForSymbol={(sym, price) => {
+                setAlertDraftSymbol(sym);
+                setAlertDraftPrice(price ?? null);
+                setSection('alerts');
+              }}
+            />
+          )}
+
+          {section === 'alerts' && (
+            <PriceAlertsView
+              initialSymbol={alertDraftSymbol}
+              initialPrice={alertDraftPrice}
+              onClearInitialSymbol={() => {
+                setAlertDraftSymbol(undefined);
+                setAlertDraftPrice(null);
+              }}
+              onAnalyzeSymbol={(sym) => {
+                setAnalyzeSymbol(sym);
+                setSection('new-analysis');
+              }}
+              onTriggeredCountChange={setTriggeredAlertsCount}
             />
           )}
 

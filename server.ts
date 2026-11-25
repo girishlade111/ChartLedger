@@ -8,6 +8,7 @@ import authRoutes from './src/server/routes/authRoutes.ts';
 import analysisRoutes from './src/server/routes/analysisRoutes.ts';
 import chatAndRagRoutes from './src/server/routes/chatAndRagRoutes.ts';
 import workspaceRoutes, { handleStripeWebhook } from './src/server/routes/workspaceRoutes.ts';
+import alertsAndPortfolioRoutes from './src/server/routes/alertsAndPortfolioRoutes.ts';
 
 async function startServer() {
   const app = express();
@@ -69,6 +70,7 @@ async function startServer() {
   app.use(analysisRoutes);
   app.use(chatAndRagRoutes);
   app.use(workspaceRoutes);
+  app.use(alertsAndPortfolioRoutes);
 
   // Mount Vite middleware in dev or serve built SPA in production
   if (!isProd) {

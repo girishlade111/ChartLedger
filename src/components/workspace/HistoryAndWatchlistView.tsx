@@ -329,9 +329,10 @@ export function AnalysisHistoryView({
 
 interface WatchlistViewProps {
   onAnalyzeSymbol: (symbol: string) => void;
+  onSetAlertForSymbol?: (symbol: string, livePrice?: number | null) => void;
 }
 
-export function WatchlistView({ onAnalyzeSymbol }: WatchlistViewProps) {
+export function WatchlistView({ onAnalyzeSymbol, onSetAlertForSymbol }: WatchlistViewProps) {
   const [items, setItems] = useState<any[]>([]);
   const [symbol, setSymbol] = useState('');
   const [market, setMarket] = useState('Crypto');
@@ -476,6 +477,15 @@ export function WatchlistView({ onAnalyzeSymbol }: WatchlistViewProps) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-3">
+                      {onSetAlertForSymbol && (
+                        <button
+                          type="button"
+                          onClick={() => onSetAlertForSymbol(item.symbol, item.quote?.lastPrice ?? null)}
+                          className="font-medium text-zinc-600 hover:text-emerald-600 hover:underline dark:text-zinc-300 dark:hover:text-emerald-400"
+                        >
+                          Alert
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => onAnalyzeSymbol(item.symbol)}

@@ -37,15 +37,52 @@ const TIMEFRAME_MAP: Record<string, string> = {
   w: '1w',
 };
 
+export interface RealTimeSpotQuote {
+  symbol: string;
+  normalizedSymbol: string;
+  lastPrice: number;
+  change24hPercent: number | null;
+  high24h: number | null;
+  low24h: number | null;
+  fetchedAt: string;
+  sourceName: string;
+}
+
 const cache = new Map<string, { expiresAt: number; data: MarketDataResult }>();
+const spotCache = new Map<string, { expiresAt: number; data: RealTimeSpotQuote }>();
 
 export function normalizeCryptoSymbol(raw: string): string | null {
   const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!cleaned || cleaned.length < 4 || cleaned.length > 12) return null;
+  if (!cleaned || cleaned.length < 2 || cleaned.length > 12) return null;
   if (cleaned.endsWith('USDT') || cleaned.endsWith('USDC') || cleaned.endsWith('BUSD')) {
     return cleaned;
   }
-  const commonBases = new Set(['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT', 'MATIC', 'ARB', 'OP']);
+  const commonBases = new Set([
+    'BTC',
+    'ETH',
+    'SOL',
+    'BNB',
+    'XRP',
+    'ADA',
+    'DOGE',
+    'AVAX',
+    'LINK',
+    'DOT',
+    'MATIC',
+    'POL',
+    'ARB',
+    'OP',
+    'SUI',
+    'NEAR',
+    'ATOM',
+    'UNI',
+    'LTC',
+    'BCH',
+    'TON',
+    'TRX',
+    'AAVE',
+    'PEPE',
+  ]);
   if (commonBases.has(cleaned)) {
     return `${cleaned}USDT`;
   }
@@ -53,6 +90,56 @@ export function normalizeCryptoSymbol(raw: string): string | null {
     return `${cleaned.slice(0, -3)}USDT`;
   }
   return null;
+}
+
+export async function fetchRealTimeSpotPrice(
+  rawSymbol: string,
+  bypassCache = false
+): Promise<RealTimeSpotQuote | null> {
+  const normalized = normalizeCryptoSymbol(rawSymbol);
+  if (!normalized) return null;
+
+  const cached = spotCache.get(normalized);
+  if (!bypassCache && cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4500);
+    const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(normalized)}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      lastPrice?: string;
+      priceChangePercent?: string;
+      highPrice?: string;
+      lowPrice?: string;
+    };
+    const lastPrice = Number(data.lastPrice);
+    if (!Number.isFinite(lastPrice) || lastPrice <= 0) return null;
+
+    const quote: RealTimeSpotQuote = {
+      symbol: rawSymbol.toUpperCase(),
+      normalizedSymbol: normalized,
+      lastPrice,
+      change24hPercent:
+        data.priceChangePercent != null
+          ? Math.round(Number(data.priceChangePercent) * 100) / 100
+          : null,
+      high24h: data.highPrice != null ? Number(data.highPrice) : null,
+      low24h: data.lowPrice != null ? Number(data.lowPrice) : null,
+      fetchedAt: new Date().toISOString(),
+      sourceName: 'Binance Real-Time Spot API',
+    };
+
+    spotCache.set(normalized, { expiresAt: Date.now() + 5_000, data: quote });
+    return quote;
+  } catch {
+    return null;
+  }
 }
 
 export function normalizeTimeframe(raw?: string | null): string {

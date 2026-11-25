@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -355,6 +356,46 @@ export const contactSubmissions = pgTable('contact_submissions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const priceAlerts = pgTable(
+  'price_alerts',
+  {
+    id: text('id').primaryKey(), // UUID
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    symbol: text('symbol').notNull(),
+    market: text('market').notNull().default('Crypto'),
+    condition: text('condition').notNull().default('above'), // above | below
+    targetPrice: doublePrecision('target_price').notNull(),
+    note: text('note').notNull().default(''),
+    status: text('status').notNull().default('active'), // active | paused | triggered
+    lastCheckedPrice: doublePrecision('last_checked_price'),
+    lastCheckedAt: timestamp('last_checked_at'),
+    triggeredPrice: doublePrecision('triggered_price'),
+    triggeredAt: timestamp('triggered_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [index('price_alerts_user_idx').on(t.userId)]
+);
+
+export const portfolioHoldings = pgTable(
+  'portfolio_holdings',
+  {
+    id: text('id').primaryKey(), // UUID
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    symbol: text('symbol').notNull(),
+    market: text('market').notNull().default('Crypto'),
+    quantity: doublePrecision('quantity').notNull(),
+    avgCost: doublePrecision('avg_cost').notNull(),
+    notes: text('notes').notNull().default(''),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [index('portfolio_holdings_user_idx').on(t.userId)]
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   plan: one(plans, { fields: [users.planId], references: [plans.id] }),
   subscription: one(subscriptions, { fields: [users.id], references: [subscriptions.userId] }),
@@ -363,9 +404,12 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   conversations: many(conversations),
   prompts: many(savedPrompts),
   watchlist: many(watchlistItems),
+  priceAlerts: many(priceAlerts),
+  portfolioHoldings: many(portfolioHoldings),
 }));
 
 export const analysesRelations = relations(analyses, ({ one }) => ({
   owner: one(users, { fields: [analyses.userId], references: [users.id] }),
   upload: one(chartUploads, { fields: [analyses.uploadId], references: [chartUploads.id] }),
 }));
+

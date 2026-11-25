@@ -321,4 +321,95 @@ test('Full-stack API, Security, Tenant Isolation, RAG, SSE & Billing Integration
     assert.equal(exp.data.account.email, emailA);
     assert.ok(Array.isArray(exp.data.analyses) && exp.data.analyses.length >= 1);
   });
+
+  await t.test('10. Real-time price alerts create, evaluate against live spot price, and enforce tenant isolation', async () => {
+    // Create an alert guaranteed to trigger immediately (BTCUSDT above $1)
+    const triggeredCreate = await reqJson('/api/alerts', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'BTCUSDT', market: 'Crypto', condition: 'above', targetPrice: 1, note: 'Spot trigger test' },
+    });
+    assert.equal(triggeredCreate.status, 201, `Create alert failed: ${JSON.stringify(triggeredCreate.data)}`);
+    assert.equal(triggeredCreate.data.alert.status, 'triggered');
+    assert.ok(triggeredCreate.data.alert.triggeredPrice > 1);
+    const alertIdA = triggeredCreate.data.alert.id;
+
+    // Create an active non-triggered alert (BTCUSDT above $9,000,000)
+    const activeCreate = await reqJson('/api/alerts', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'BTCUSDT', market: 'Crypto', condition: 'above', targetPrice: 9000000 },
+    });
+    assert.equal(activeCreate.status, 201);
+    assert.equal(activeCreate.data.alert.status, 'active');
+
+    // User B cannot update or delete User A's alert
+    const patchB = await reqJson(`/api/alerts/${alertIdA}`, {
+      method: 'PATCH',
+      token: tokenB,
+      body: { status: 'paused' },
+    });
+    assert.equal(patchB.status, 404);
+    const delB = await reqJson(`/api/alerts/${alertIdA}`, { method: 'DELETE', token: tokenB });
+    assert.equal(delB.status, 404);
+
+    // User A can pause and evaluate live alerts
+    const evalRes = await reqJson('/api/alerts/evaluate', { method: 'POST', token: tokenA });
+    assert.equal(evalRes.status, 200);
+    assert.ok(Array.isArray(evalRes.data.alerts) && evalRes.data.alerts.length === 2);
+
+    const delA = await reqJson(`/api/alerts/${alertIdA}`, { method: 'DELETE', token: tokenA });
+    assert.equal(delA.status, 200);
+  });
+
+  await t.test('11. Portfolio holdings CRUD, real-time summary, historical performance curve, and tenant isolation', async () => {
+    const addBtc = await reqJson('/api/portfolio/holdings', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'BTCUSDT', market: 'Crypto', quantity: 0.5, avgCost: 50000, notes: 'Core position' },
+    });
+    assert.equal(addBtc.status, 201, `Create holding failed: ${JSON.stringify(addBtc.data)}`);
+    const holdingIdA = addBtc.data.holding.id;
+
+    const addEth = await reqJson('/api/portfolio/holdings', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'ETHUSDT', market: 'Crypto', quantity: 4, avgCost: 2200 },
+    });
+    assert.equal(addEth.status, 201);
+
+    const summaryRes = await reqJson('/api/portfolio/summary?range=30', { token: tokenA });
+    assert.equal(summaryRes.status, 200);
+    assert.equal(summaryRes.data.summary.holdingCount, 2);
+    assert.ok(summaryRes.data.summary.totalCurrentValue > 0);
+    assert.ok(summaryRes.data.performance.points.length >= 10);
+
+    // User B cannot see, update, or delete User A's holdings
+    const summaryB = await reqJson('/api/portfolio/summary?range=30', { token: tokenB });
+    assert.equal(summaryB.status, 200);
+    assert.equal(summaryB.data.summary.holdingCount, 0);
+
+    const patchB = await reqJson(`/api/portfolio/holdings/${holdingIdA}`, {
+      method: 'PATCH',
+      token: tokenB,
+      body: { quantity: 99 },
+    });
+    assert.equal(patchB.status, 404);
+
+    // User A updates quantity and deletes
+    const patchA = await reqJson(`/api/portfolio/holdings/${holdingIdA}`, {
+      method: 'PATCH',
+      token: tokenA,
+      body: { quantity: 0.75 },
+    });
+    assert.equal(patchA.status, 200);
+    assert.equal(patchA.data.holding.quantity, 0.75);
+
+    const delA = await reqJson(`/api/portfolio/holdings/${holdingIdA}`, {
+      method: 'DELETE',
+      token: tokenA,
+    });
+    assert.equal(delA.status, 200);
+  });
 });
+
