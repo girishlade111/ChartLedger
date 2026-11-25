@@ -473,6 +473,85 @@ test('Full-stack API, Security, Tenant Isolation, RAG, SSE & Billing Integration
     assert.ok(buf.length > 1200, `Expected PDF > 1200 bytes, got ${buf.length}`);
     assert.equal(buf.subarray(0, 5).toString('ascii'), '%PDF-');
   });
+
+  await t.test('14. Notification Settings toggle persists and governs triggered alert email dispatches per tenant', async () => {
+    const initial = await reqJson('/api/notifications/settings', { token: tokenA });
+    assert.equal(initial.status, 200);
+    assert.equal(initial.data.settings.emailAlertsEnabled, false);
+
+    // Enable email notifications with custom recipient email
+    const enableRes = await reqJson('/api/notifications/settings', {
+      method: 'PATCH',
+      token: tokenA,
+      body: {
+        emailAlertsEnabled: true,
+        recipientEmail: 'alerts-desk@chartledger.test',
+        includeResearchNotes: true,
+        deliveryMode: 'instant',
+      },
+    });
+    assert.equal(enableRes.status, 200);
+    assert.equal(enableRes.data.settings.emailAlertsEnabled, true);
+    assert.equal(enableRes.data.settings.recipientEmail, 'alerts-desk@chartledger.test');
+
+    // Trigger an alert immediately — should record an email notification dispatch for User A
+    const trigAlert = await reqJson('/api/alerts', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'BTCUSDT', market: 'Crypto', condition: 'above', targetPrice: 1, note: 'Email notify test' },
+    });
+    assert.equal(trigAlert.status, 201);
+    assert.equal(trigAlert.data.triggeredImmediately, true);
+
+    const afterEnable = await reqJson('/api/notifications/settings', { token: tokenA });
+    assert.equal(afterEnable.status, 200);
+    assert.ok(afterEnable.data.recentDispatches.length >= 1);
+    assert.equal(afterEnable.data.recentDispatches[0].recipientEmail, 'alerts-desk@chartledger.test');
+
+    // User B does not see User A's settings or dispatches
+    const settingsB = await reqJson('/api/notifications/settings', { token: tokenB });
+    assert.equal(settingsB.status, 200);
+    assert.equal(settingsB.data.settings.emailAlertsEnabled, false);
+    assert.equal(settingsB.data.recentDispatches.length, 0);
+
+    // Disable email notifications and verify count does not increase on next trigger
+    const prevCount = afterEnable.data.recentDispatches.length;
+    const disableRes = await reqJson('/api/notifications/settings', {
+      method: 'PATCH',
+      token: tokenA,
+      body: { emailAlertsEnabled: false },
+    });
+    assert.equal(disableRes.status, 200);
+    assert.equal(disableRes.data.settings.emailAlertsEnabled, false);
+
+    await reqJson('/api/alerts', {
+      method: 'POST',
+      token: tokenA,
+      body: { symbol: 'ETHUSDT', market: 'Crypto', condition: 'above', targetPrice: 1 },
+    });
+    const afterDisable = await reqJson('/api/notifications/settings', { token: tokenA });
+    assert.equal(afterDisable.data.recentDispatches.length, prevCount);
+  });
+
+  await t.test('15. Portfolio Market Sentiment computes live bullish/bearish indicator scores for active holdings', async () => {
+    const sentA = await reqJson('/api/portfolio/sentiment?timeframe=4h', { token: tokenA });
+    assert.equal(sentA.status, 200, `Sentiment failed: ${JSON.stringify(sentA.data)}`);
+    assert.ok(sentA.data.sentiment.totalHoldingsCount >= 1);
+    assert.ok(sentA.data.sentiment.scoredHoldingsCount >= 1);
+    assert.ok(
+      typeof sentA.data.sentiment.overallScore === 'number' &&
+        sentA.data.sentiment.overallScore >= 0 &&
+        sentA.data.sentiment.overallScore <= 100
+    );
+    assert.ok(sentA.data.sentiment.assets[0].signals.length >= 4);
+
+    // User B has 0 holdings -> isolated empty sentiment
+    const sentB = await reqJson('/api/portfolio/sentiment?timeframe=4h', { token: tokenB });
+    assert.equal(sentB.status, 200);
+    assert.equal(sentB.data.sentiment.totalHoldingsCount, 0);
+    assert.equal(sentB.data.sentiment.overallScore, null);
+  });
 });
+
 
 

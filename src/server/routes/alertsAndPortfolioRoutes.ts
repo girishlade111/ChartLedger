@@ -18,6 +18,12 @@ import {
 } from '../../utils/portfolioAndAlerts.ts';
 import { fetchCryptoMarketData, fetchRealTimeSpotPrice } from '../marketData.ts';
 import { generatePortfolioPdfBuffer } from '../portfolioPdf.ts';
+import { buildPortfolioMarketSentiment } from '../../utils/marketSentiment.ts';
+import {
+  dispatchPriceAlertEmailIfEnabled,
+  getUserNotificationSettings,
+  updateUserNotificationSettings,
+} from '../alertNotifier.ts';
 
 const router = Router();
 
@@ -121,6 +127,15 @@ async function evaluateAndEnrichAlerts(userId: number, bypassCache = false) {
             triggeredPrice: currentPrice,
             alertNote: saved.note,
             triggeredAt: now,
+          });
+          await dispatchPriceAlertEmailIfEnabled({
+            userId,
+            alertId: saved.id,
+            symbol: saved.symbol,
+            condition: saved.condition,
+            targetPrice: saved.targetPrice,
+            triggeredPrice: currentPrice,
+            note: saved.note,
           });
           newlyTriggered.push({
             id: saved.id,
@@ -457,6 +472,15 @@ router.post('/api/alerts', requireAuth, async (req: AuthRequest, res) => {
         alertNote: created.note,
         triggeredAt: now,
       });
+      await dispatchPriceAlertEmailIfEnabled({
+        userId: req.dbUser!.id,
+        alertId: created.id,
+        symbol: created.symbol,
+        condition: created.condition,
+        targetPrice: created.targetPrice,
+        triggeredPrice: currentPrice,
+        note: created.note,
+      });
     }
 
     res.status(201).json({
@@ -686,6 +710,111 @@ router.delete('/api/portfolio/holdings/:id', requireAuth, async (req: AuthReques
   } catch (error) {
     console.error('Delete holding error:', error);
     res.status(500).json({ error: 'Failed to delete asset holding.' });
+  }
+});
+
+// ============================================================================
+// MARKET SENTIMENT (DETERMINISTIC TECHNICAL INDICATOR SCORE FOR ACTIVE HOLDINGS)
+// ============================================================================
+
+router.get('/api/portfolio/sentiment', requireAuth, marketPollLimiter, async (req: AuthRequest, res) => {
+  try {
+    const tfParam = String(req.query.timeframe || '4h').toLowerCase();
+    const timeframe = tfParam === '1d' ? '1d' : '4h';
+
+    const rows = await db
+      .select()
+      .from(portfolioHoldings)
+      .where(eq(portfolioHoldings.userId, req.dbUser!.id))
+      .orderBy(desc(portfolioHoldings.createdAt));
+
+    const uniqueSymbols = Array.from(new Set(rows.map((r) => r.symbol)));
+    const spotMap = new Map<string, Awaited<ReturnType<typeof fetchRealTimeSpotPrice>>>();
+    const ohlcvMap = new Map<string, Awaited<ReturnType<typeof fetchCryptoMarketData>>>();
+
+    await Promise.all(
+      uniqueSymbols.map(async (sym) => {
+        const [spot, ohlcv] = await Promise.all([
+          fetchRealTimeSpotPrice(sym, false),
+          fetchCryptoMarketData(sym, timeframe),
+        ]);
+        spotMap.set(sym, spot);
+        ohlcvMap.set(sym, ohlcv);
+      })
+    );
+
+    // Aggregate quantities per symbol so duplicate entries combine cleanly
+    const bySymbol = new Map<
+      string,
+      { symbol: string; market: string; currentValue: number; candles: any }
+    >();
+    for (const row of rows) {
+      const spot = spotMap.get(row.symbol);
+      const ohlcv = ohlcvMap.get(row.symbol);
+      const effectivePrice = spot?.lastPrice ?? ohlcv?.lastPrice ?? row.avgCost;
+      const val = Math.max(0, row.quantity * effectivePrice);
+      const existing = bySymbol.get(row.symbol);
+      if (existing) {
+        existing.currentValue += val;
+      } else {
+        bySymbol.set(row.symbol, {
+          symbol: row.symbol,
+          market: row.market,
+          currentValue: val,
+          candles: ohlcv?.candles ?? null,
+        });
+      }
+    }
+
+    const sentiment = buildPortfolioMarketSentiment(Array.from(bySymbol.values()));
+    res.json({
+      sentiment,
+      timeframe,
+      fetchedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Portfolio sentiment error:', error);
+    res.status(500).json({ error: 'Failed to compute portfolio market sentiment.' });
+  }
+});
+
+// ============================================================================
+// NOTIFICATION SETTINGS (EMAIL NOTIFICATIONS FOR TRIGGERED PRICE ALERTS)
+// ============================================================================
+
+router.get('/api/notifications/settings', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const data = await getUserNotificationSettings(req.dbUser!.id);
+    res.json(data);
+  } catch (error) {
+    console.error('Get notification settings error:', error);
+    res.status(500).json({ error: 'Failed to load notification settings.' });
+  }
+});
+
+router.patch('/api/notifications/settings', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const schema = z.object({
+      emailAlertsEnabled: z.boolean().optional(),
+      recipientEmail: z.string().trim().email().max(160).optional(),
+      includeResearchNotes: z.boolean().optional(),
+      deliveryMode: z.enum(['instant', 'digest']).optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid notification settings. Please provide a valid email address.' });
+      return;
+    }
+
+    const updated = await updateUserNotificationSettings(req.dbUser!.id, parsed.data);
+    const full = await getUserNotificationSettings(req.dbUser!.id);
+    res.json({
+      ...full,
+      settings: updated,
+    });
+  } catch (error) {
+    console.error('Update notification settings error:', error);
+    res.status(500).json({ error: 'Failed to save notification settings.' });
   }
 });
 

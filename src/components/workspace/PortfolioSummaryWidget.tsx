@@ -29,6 +29,7 @@ interface PortfolioSummaryWidgetProps {
   theme: 'dark' | 'light';
   onSetAlertForSymbol: (symbol: string, livePrice?: number | null) => void;
   onAnalyzeSymbol: (symbol: string) => void;
+  onHoldingsChange?: () => void;
 }
 
 function formatUsd(val: number): string {
@@ -54,6 +55,7 @@ export function PortfolioSummaryWidget({
   theme,
   onSetAlertForSymbol,
   onAnalyzeSymbol,
+  onHoldingsChange,
 }: PortfolioSummaryWidgetProps) {
   const [range, setRange] = useState<7 | 30 | 90>(30);
   const [data, setData] = useState<PortfolioSummaryResponse | null>(null);
@@ -127,6 +129,7 @@ export function PortfolioSummaryWidget({
       setNotes('');
       setShowAddForm(false);
       await loadPortfolio(range, true);
+      onHoldingsChange?.();
     } catch (err: any) {
       setError(err.message || 'Failed to add holding.');
     } finally {
@@ -155,6 +158,7 @@ export function PortfolioSummaryWidget({
       });
       setEditingId(null);
       await loadPortfolio(range, true);
+      onHoldingsChange?.();
     } catch (err: any) {
       setError(err.message || 'Failed to update holding.');
     }
@@ -164,6 +168,7 @@ export function PortfolioSummaryWidget({
     try {
       await apiFetch(`/api/portfolio/holdings/${id}`, { method: 'DELETE' });
       await loadPortfolio(range, true);
+      onHoldingsChange?.();
     } catch (err: any) {
       setError(err.message || 'Failed to delete holding.');
     }

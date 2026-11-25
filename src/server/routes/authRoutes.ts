@@ -341,9 +341,13 @@ router.patch('/api/user/preferences', requireAuth, async (req: AuthRequest, res)
     }
 
     const { onboardingCompleted, reset, ...prefFields } = parsed.data;
+    const existingPrefs = (req.dbUser!.preferencesJson || {}) as Record<string, unknown>;
     const nextPrefs = reset
-      ? { personalizationEnabled: true }
-      : { ...(req.dbUser!.preferencesJson || {}), ...prefFields };
+      ? {
+          personalizationEnabled: true,
+          ...(existingPrefs.notifications ? { notifications: existingPrefs.notifications } : {}),
+        }
+      : { ...existingPrefs, ...prefFields };
 
     const updates: Record<string, unknown> = {
       preferencesJson: nextPrefs,

@@ -3,6 +3,7 @@ import { Code2, Download, ShieldAlert, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../lib/api';
 import { formatCents } from '../../utils/billing';
+import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 
 export function BillingAndWidgetsView() {
   const { refreshProfile } = useAuth();
@@ -493,6 +494,9 @@ export function SettingsView() {
           </button>
         </div>
       </form>
+
+      {/* Notification Settings Panel */}
+      <NotificationSettingsPanel />
 
       {/* Data Export & Deletion */}
       <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111114]">

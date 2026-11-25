@@ -46,6 +46,7 @@ interface PriceAlertsViewProps {
   onAnalyzeSymbol: (symbol: string) => void;
   onTriggeredCountChange?: (count: number) => void;
   onOpenAlertHistory?: () => void;
+  onOpenNotificationSettings?: () => void;
 }
 
 const QUICK_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
@@ -67,6 +68,7 @@ export function PriceAlertsView({
   onAnalyzeSymbol,
   onTriggeredCountChange,
   onOpenAlertHistory,
+  onOpenNotificationSettings,
 }: PriceAlertsViewProps) {
   const [alerts, setAlerts] = useState<PriceAlertRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -420,15 +422,26 @@ export function PriceAlertsView({
           ))}
         </div>
 
-        {onOpenAlertHistory && (
-          <button
-            type="button"
-            onClick={onOpenAlertHistory}
-            className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-          >
-            View Alert History →
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-4">
+          {onOpenNotificationSettings && (
+            <button
+              type="button"
+              onClick={onOpenNotificationSettings}
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Notification Settings
+            </button>
+          )}
+          {onOpenAlertHistory && (
+            <button
+              type="button"
+              onClick={onOpenAlertHistory}
+              className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+            >
+              View Alert History →
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Alerts Table */}

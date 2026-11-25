@@ -28,6 +28,7 @@ import { ResearchChatView } from './workspace/ResearchChatView';
 import { KnowledgeBaseView, SavedPromptsView } from './workspace/KnowledgeAndPromptsView';
 import { AnalysisHistoryView, WatchlistView } from './workspace/HistoryAndWatchlistView';
 import { PortfolioSummaryWidget } from './workspace/PortfolioSummaryWidget';
+import { MarketSentimentWidget } from './workspace/MarketSentimentWidget';
 import { PriceAlertsView } from './workspace/PriceAlertsView';
 import { AlertHistoryView } from './workspace/AlertHistoryView';
 import {
@@ -73,6 +74,7 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
   const [alertDraftSymbol, setAlertDraftSymbol] = useState<string | undefined>(undefined);
   const [alertDraftPrice, setAlertDraftPrice] = useState<number | null>(null);
   const [triggeredAlertsCount, setTriggeredAlertsCount] = useState(0);
+  const [holdingsVersion, setHoldingsVersion] = useState(0);
 
   const loadWorkspaceData = useCallback(async () => {
     try {
@@ -395,6 +397,16 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                   setAnalyzeSymbol(sym);
                   setSection('new-analysis');
                 }}
+                onHoldingsChange={() => setHoldingsVersion((v) => v + 1)}
+              />
+
+              {/* Market Sentiment Technical Indicator Widget */}
+              <MarketSentimentWidget
+                refreshTrigger={holdingsVersion}
+                onAnalyzeSymbol={(sym) => {
+                  setAnalyzeSymbol(sym);
+                  setSection('new-analysis');
+                }}
               />
 
               {/* Recent Analyses */}
@@ -528,6 +540,14 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
               }}
               onTriggeredCountChange={setTriggeredAlertsCount}
               onOpenAlertHistory={() => setSection('alert-history')}
+              onOpenNotificationSettings={() => {
+                setSection('settings');
+                setTimeout(() => {
+                  document
+                    .getElementById('notification-settings')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
             />
           )}
 

@@ -9,6 +9,10 @@ import {
   evaluatePriceAlert,
 } from '../../src/utils/portfolioAndAlerts';
 import { generatePortfolioPdfBuffer } from '../../src/server/portfolioPdf';
+import {
+  buildPortfolioMarketSentiment,
+  computeAssetTechnicalSentiment,
+} from '../../src/utils/marketSentiment';
 import type { OhlcvCandle } from '../../src/utils/indicators';
 
 test('evaluatePriceAlert triggers accurately for above/below conditions and respects paused/triggered status', () => {
@@ -209,4 +213,58 @@ test('generatePortfolioPdfBuffer builds a valid PDF document with holdings and c
   assert.ok(rawPdf.includes('%%EOF'));
   assert.ok(rawPdf.includes('/Count 1'), 'Expected 1-page PDF with zero blank overflow pages');
 });
+
+test('computeAssetTechnicalSentiment and buildPortfolioMarketSentiment score uptrends bullish and downtrends bearish', () => {
+  const day = 86400;
+  const baseTs = 1760000000;
+  const uptrendCandles: OhlcvCandle[] = Array.from({ length: 70 }, (_, i) => {
+    const close = 100 + i * 2.5 + (i % 2 === 0 ? 0.5 : -0.2);
+    return {
+      time: baseTs + i * day,
+      open: close - 1,
+      high: close + 2,
+      low: close - 2,
+      close,
+      volume: 1000,
+    };
+  });
+  const downtrendCandles: OhlcvCandle[] = Array.from({ length: 70 }, (_, i) => {
+    const close = 300 - i * 2.5 + (i % 2 === 0 ? -0.5 : 0.2);
+    return {
+      time: baseTs + i * day,
+      open: close + 1,
+      high: close + 2,
+      low: close - 2,
+      close,
+      volume: 1000,
+    };
+  });
+
+  const bullAsset = computeAssetTechnicalSentiment('BTCUSDT', 'Crypto', 30000, uptrendCandles);
+  assert.equal(bullAsset.available, true);
+  assert.ok(bullAsset.score !== null && bullAsset.score >= 70, `Expected bullish score >=70, got ${bullAsset.score}`);
+  assert.equal(bullAsset.label, 'Strong Bullish');
+  assert.equal(bullAsset.signals.length, 5);
+
+  const bearAsset = computeAssetTechnicalSentiment('ETHUSDT', 'Crypto', 10000, downtrendCandles);
+  assert.equal(bearAsset.available, true);
+  assert.ok(bearAsset.score !== null && bearAsset.score <= 30, `Expected bearish score <=30, got ${bearAsset.score}`);
+  assert.equal(bearAsset.label, 'Strong Bearish');
+
+  const portfolioSentiment = buildPortfolioMarketSentiment([
+    { symbol: 'BTCUSDT', market: 'Crypto', currentValue: 30000, candles: uptrendCandles },
+    { symbol: 'ETHUSDT', market: 'Crypto', currentValue: 10000, candles: downtrendCandles },
+    { symbol: 'AAPL', market: 'Stocks', currentValue: 5000, candles: null },
+  ]);
+
+  assert.equal(portfolioSentiment.totalHoldingsCount, 3);
+  assert.equal(portfolioSentiment.scoredHoldingsCount, 2);
+  // 75% weight on Strong Bullish (100) + 25% weight on Strong Bearish (0) => ~75 Strong Bullish
+  assert.ok(
+    portfolioSentiment.overallScore !== null && portfolioSentiment.overallScore >= 60,
+    `Expected weighted bullish score >= 60, got ${portfolioSentiment.overallScore}`
+  );
+  assert.equal(portfolioSentiment.assets[2].available, false);
+});
+
 
