@@ -4,16 +4,20 @@ import rateLimit from 'express-rate-limit';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db/index.ts';
-import { portfolioHoldings, priceAlerts } from '../../db/schema.ts';
+import { portfolioHoldings, priceAlertHistory, priceAlerts } from '../../db/schema.ts';
 import { AuthRequest, requireAuth } from '../../middleware/auth.ts';
 import {
+  buildAlertHistoryStats,
   buildPortfolioPerformanceSeries,
   buildPortfolioSummary,
+  computeAlertOutcomeMetrics,
   evaluatePriceAlert,
+  type AlertOutcomeStatus,
   type PriceAlertCondition,
   type PriceAlertStatus,
 } from '../../utils/portfolioAndAlerts.ts';
 import { fetchCryptoMarketData, fetchRealTimeSpotPrice } from '../marketData.ts';
+import { generatePortfolioPdfBuffer } from '../portfolioPdf.ts';
 
 const router = Router();
 
@@ -24,6 +28,33 @@ const marketPollLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many live quote requests. Please wait briefly.' },
 });
+
+async function recordTriggeredAlertHistory(params: {
+  userId: number;
+  alertId: string;
+  symbol: string;
+  market: string;
+  condition: string;
+  targetPrice: number;
+  triggeredPrice: number;
+  alertNote: string;
+  triggeredAt: Date;
+}) {
+  await db.insert(priceAlertHistory).values({
+    id: crypto.randomUUID(),
+    userId: params.userId,
+    alertId: params.alertId,
+    symbol: params.symbol,
+    market: params.market,
+    condition: params.condition,
+    targetPrice: params.targetPrice,
+    triggeredPrice: params.triggeredPrice,
+    alertNote: params.alertNote,
+    outcomeStatus: 'pending_review',
+    outcomeNote: '',
+    triggeredAt: params.triggeredAt,
+  });
+}
 
 async function evaluateAndEnrichAlerts(userId: number, bypassCache = false) {
   const rows = await db
@@ -80,6 +111,17 @@ async function evaluateAndEnrichAlerts(userId: number, bypassCache = false) {
           .returning();
         if (saved) {
           updatedRow = saved;
+          await recordTriggeredAlertHistory({
+            userId,
+            alertId: saved.id,
+            symbol: saved.symbol,
+            market: saved.market,
+            condition: saved.condition,
+            targetPrice: saved.targetPrice,
+            triggeredPrice: currentPrice,
+            alertNote: saved.note,
+            triggeredAt: now,
+          });
           newlyTriggered.push({
             id: saved.id,
             symbol: saved.symbol,
@@ -125,6 +167,79 @@ async function evaluateAndEnrichAlerts(userId: number, bypassCache = false) {
   };
 }
 
+async function computeUserPortfolioData(userId: number, rangeParam: number) {
+  const rangeDays = rangeParam === 7 ? 7 : rangeParam === 90 ? 90 : 30;
+  const candleTf = rangeDays === 7 ? '4h' : '1d';
+  const candleBars = rangeDays === 7 ? 42 : rangeDays; // 42 x 4h = 7 days
+
+  const rows = await db
+    .select()
+    .from(portfolioHoldings)
+    .where(eq(portfolioHoldings.userId, userId))
+    .orderBy(desc(portfolioHoldings.createdAt));
+
+  const uniqueSymbols = Array.from(new Set(rows.map((r) => r.symbol)));
+  const spotMap = new Map<string, Awaited<ReturnType<typeof fetchRealTimeSpotPrice>>>();
+  const ohlcvMap = new Map<string, Awaited<ReturnType<typeof fetchCryptoMarketData>>>();
+
+  await Promise.all(
+    uniqueSymbols.map(async (sym) => {
+      const [spot, ohlcv] = await Promise.all([
+        fetchRealTimeSpotPrice(sym, false),
+        fetchCryptoMarketData(sym, candleTf),
+      ]);
+      spotMap.set(sym, spot);
+      ohlcvMap.set(sym, ohlcv);
+    })
+  );
+
+  const summary = buildPortfolioSummary(
+    rows.map((row) => {
+      const spot = spotMap.get(row.symbol);
+      const ohlcv = ohlcvMap.get(row.symbol);
+      return {
+        holding: {
+          id: row.id,
+          symbol: row.symbol,
+          market: row.market,
+          quantity: row.quantity,
+          avgCost: row.avgCost,
+          notes: row.notes,
+        },
+        livePrice: spot?.lastPrice ?? ohlcv?.lastPrice ?? null,
+        change24hPercent: spot?.change24hPercent ?? ohlcv?.change24hPercent ?? null,
+        sourceName: spot?.sourceName ?? ohlcv?.sourceName ?? null,
+        fetchedAt: spot?.fetchedAt ?? ohlcv?.fetchedAt ?? null,
+      };
+    })
+  );
+
+  const performance = buildPortfolioPerformanceSeries(
+    rows.map((row) => ({
+      holding: {
+        id: row.id,
+        symbol: row.symbol,
+        market: row.market,
+        quantity: row.quantity,
+        avgCost: row.avgCost,
+        notes: row.notes,
+      },
+      candles: ohlcvMap.get(row.symbol)?.candles ?? null,
+    })),
+    candleBars
+  );
+
+  return {
+    rangeDays,
+    summary,
+    performance: {
+      ...performance,
+      rangeDays,
+    },
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 // ============================================================================
 // REAL-TIME PRICE ALERTS
 // ============================================================================
@@ -150,6 +265,136 @@ router.post('/api/alerts/evaluate', requireAuth, marketPollLimiter, async (req: 
   }
 });
 
+// ============================================================================
+// TRIGGERED ALERT HISTORY LOG & OUTCOMES
+// ============================================================================
+
+router.get('/api/alerts/history', requireAuth, marketPollLimiter, async (req: AuthRequest, res) => {
+  try {
+    const bypass = req.query.fresh === '1';
+    const rows = await db
+      .select()
+      .from(priceAlertHistory)
+      .where(eq(priceAlertHistory.userId, req.dbUser!.id))
+      .orderBy(desc(priceAlertHistory.triggeredAt));
+
+    const uniqueSymbols = Array.from(new Set(rows.map((r) => r.symbol)));
+    const quoteMap = new Map<string, Awaited<ReturnType<typeof fetchRealTimeSpotPrice>>>();
+    await Promise.all(
+      uniqueSymbols.map(async (sym) => {
+        const q = await fetchRealTimeSpotPrice(sym, bypass);
+        quoteMap.set(sym, q);
+      })
+    );
+
+    const enriched = rows.map((row) => {
+      const quote = quoteMap.get(row.symbol) ?? null;
+      const metrics = computeAlertOutcomeMetrics(
+        row.condition as PriceAlertCondition,
+        row.targetPrice,
+        row.triggeredPrice,
+        quote?.lastPrice ?? null
+      );
+      return {
+        id: row.id,
+        alertId: row.alertId,
+        symbol: row.symbol,
+        market: row.market,
+        condition: row.condition as PriceAlertCondition,
+        targetPrice: row.targetPrice,
+        triggeredPrice: row.triggeredPrice,
+        alertNote: row.alertNote,
+        outcomeStatus: row.outcomeStatus as AlertOutcomeStatus,
+        outcomeNote: row.outcomeNote,
+        triggeredAt: row.triggeredAt.toISOString(),
+        reviewedAt: row.reviewedAt ? row.reviewedAt.toISOString() : null,
+        metrics,
+      };
+    });
+
+    const stats = buildAlertHistoryStats(enriched);
+    res.json({
+      history: enriched,
+      stats,
+      checkedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('List alert history error:', error);
+    res.status(500).json({ error: 'Failed to load alert history.' });
+  }
+});
+
+router.patch('/api/alerts/history/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const schema = z.object({
+      outcomeStatus: z
+        .enum(['pending_review', 'actioned', 'confirmed_move', 'false_breakout', 'ignored'])
+        .optional(),
+      outcomeNote: z.string().max(500).optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid alert history outcome update.' });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (parsed.data.outcomeStatus !== undefined) {
+      updates.outcomeStatus = parsed.data.outcomeStatus;
+      updates.reviewedAt = parsed.data.outcomeStatus === 'pending_review' ? null : new Date();
+    }
+    if (parsed.data.outcomeNote !== undefined) {
+      updates.outcomeNote = parsed.data.outcomeNote.trim();
+      if (!updates.reviewedAt && parsed.data.outcomeNote.trim().length > 0) {
+        updates.reviewedAt = new Date();
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'No fields provided to update.' });
+      return;
+    }
+
+    const [updated] = await db
+      .update(priceAlertHistory)
+      .set(updates)
+      .where(
+        and(eq(priceAlertHistory.id, req.params.id), eq(priceAlertHistory.userId, req.dbUser!.id))
+      )
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: 'Alert history entry not found.' });
+      return;
+    }
+
+    res.json({ entry: updated });
+  } catch (error) {
+    console.error('Update alert history error:', error);
+    res.status(500).json({ error: 'Failed to update alert history outcome.' });
+  }
+});
+
+router.delete('/api/alerts/history/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const deleted = await db
+      .delete(priceAlertHistory)
+      .where(
+        and(eq(priceAlertHistory.id, req.params.id), eq(priceAlertHistory.userId, req.dbUser!.id))
+      )
+      .returning({ id: priceAlertHistory.id });
+
+    if (deleted.length === 0) {
+      res.status(404).json({ error: 'Alert history entry not found.' });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete alert history error:', error);
+    res.status(500).json({ error: 'Failed to delete alert history entry.' });
+  }
+});
+
 router.post('/api/alerts', requireAuth, async (req: AuthRequest, res) => {
   try {
     const schema = z.object({
@@ -161,7 +406,9 @@ router.post('/api/alerts', requireAuth, async (req: AuthRequest, res) => {
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Symbol, condition (above/below), and a positive target price are required.' });
+      res
+        .status(400)
+        .json({ error: 'Symbol, condition (above/below), and a positive target price are required.' });
       return;
     }
 
@@ -197,6 +444,20 @@ router.post('/api/alerts', requireAuth, async (req: AuthRequest, res) => {
         triggeredAt: evalRes.shouldTrigger ? now : null,
       })
       .returning();
+
+    if (evalRes.shouldTrigger && currentPrice !== null && created) {
+      await recordTriggeredAlertHistory({
+        userId: req.dbUser!.id,
+        alertId: created.id,
+        symbol: created.symbol,
+        market: created.market,
+        condition: created.condition,
+        targetPrice: created.targetPrice,
+        triggeredPrice: currentPrice,
+        alertNote: created.note,
+        triggeredAt: now,
+      });
+    }
 
     res.status(201).json({
       alert: {
@@ -290,84 +551,45 @@ router.delete('/api/alerts/:id', requireAuth, async (req: AuthRequest, res) => {
 });
 
 // ============================================================================
-// USER-DEFINED PORTFOLIO HOLDINGS & PERFORMANCE OVER TIME
+// USER-DEFINED PORTFOLIO HOLDINGS, PERFORMANCE OVER TIME & PDF REPORT EXPORT
 // ============================================================================
 
 router.get('/api/portfolio/summary', requireAuth, marketPollLimiter, async (req: AuthRequest, res) => {
   try {
-    const rangeParam = Number(req.query.range || 30);
-    const rangeDays = rangeParam === 7 ? 7 : rangeParam === 90 ? 90 : 30;
-    const candleTf = rangeDays === 7 ? '4h' : '1d';
-    const candleBars = rangeDays === 7 ? 42 : rangeDays; // 42 x 4h = 7 days
-
-    const rows = await db
-      .select()
-      .from(portfolioHoldings)
-      .where(eq(portfolioHoldings.userId, req.dbUser!.id))
-      .orderBy(desc(portfolioHoldings.createdAt));
-
-    const uniqueSymbols = Array.from(new Set(rows.map((r) => r.symbol)));
-    const spotMap = new Map<string, Awaited<ReturnType<typeof fetchRealTimeSpotPrice>>>();
-    const ohlcvMap = new Map<string, Awaited<ReturnType<typeof fetchCryptoMarketData>>>();
-
-    await Promise.all(
-      uniqueSymbols.map(async (sym) => {
-        const [spot, ohlcv] = await Promise.all([
-          fetchRealTimeSpotPrice(sym, false),
-          fetchCryptoMarketData(sym, candleTf),
-        ]);
-        spotMap.set(sym, spot);
-        ohlcvMap.set(sym, ohlcv);
-      })
-    );
-
-    const summary = buildPortfolioSummary(
-      rows.map((row) => {
-        const spot = spotMap.get(row.symbol);
-        const ohlcv = ohlcvMap.get(row.symbol);
-        return {
-          holding: {
-            id: row.id,
-            symbol: row.symbol,
-            market: row.market,
-            quantity: row.quantity,
-            avgCost: row.avgCost,
-            notes: row.notes,
-          },
-          livePrice: spot?.lastPrice ?? ohlcv?.lastPrice ?? null,
-          change24hPercent: spot?.change24hPercent ?? ohlcv?.change24hPercent ?? null,
-          sourceName: spot?.sourceName ?? ohlcv?.sourceName ?? null,
-          fetchedAt: spot?.fetchedAt ?? ohlcv?.fetchedAt ?? null,
-        };
-      })
-    );
-
-    const performance = buildPortfolioPerformanceSeries(
-      rows.map((row) => ({
-        holding: {
-          id: row.id,
-          symbol: row.symbol,
-          market: row.market,
-          quantity: row.quantity,
-          avgCost: row.avgCost,
-          notes: row.notes,
-        },
-        candles: ohlcvMap.get(row.symbol)?.candles ?? null,
-      })),
-      candleBars
-    );
-
+    const data = await computeUserPortfolioData(req.dbUser!.id, Number(req.query.range || 30));
     res.json({
-      summary,
-      performance: {
-        ...performance,
-        rangeDays,
-      },
-      fetchedAt: new Date().toISOString(),
+      summary: data.summary,
+      performance: data.performance,
+      fetchedAt: data.fetchedAt,
     });
   } catch (error) {
     console.error('Portfolio summary error:', error);
     res.status(500).json({ error: 'Failed to load portfolio summary.' });
+  }
+});
+
+router.get('/api/portfolio/export/pdf', requireAuth, marketPollLimiter, async (req: AuthRequest, res) => {
+  try {
+    const data = await computeUserPortfolioData(req.dbUser!.id, Number(req.query.range || 30));
+    const pdfBuffer = await generatePortfolioPdfBuffer({
+      ownerName: req.dbUser!.displayName || 'Trader',
+      ownerEmail: req.dbUser!.email,
+      rangeDays: data.rangeDays,
+      generatedAt: data.fetchedAt,
+      summary: data.summary,
+      performance: data.performance,
+    });
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `chartledger-portfolio-report-${data.rangeDays}d-${dateStamp}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', String(pdfBuffer.length));
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).send(pdfBuffer);
+  } catch (error) {
+    console.error('Portfolio PDF export error:', error);
+    res.status(500).json({ error: 'Failed to generate portfolio PDF report.' });
   }
 });
 
@@ -382,7 +604,9 @@ router.post('/api/portfolio/holdings', requireAuth, async (req: AuthRequest, res
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Symbol, positive quantity, and positive average cost are required.' });
+      res
+        .status(400)
+        .json({ error: 'Symbol, positive quantity, and positive average cost are required.' });
       return;
     }
 

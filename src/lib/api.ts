@@ -62,6 +62,34 @@ export async function apiFetch<T = any>(
   return data as T;
 }
 
+export async function apiDownloadBlob(
+  url: string,
+  fallbackFilename: string
+): Promise<{ blob: Blob; filename: string }> {
+  const headers = new Headers();
+  if (inMemoryToken) {
+    headers.set('Authorization', `Bearer ${inMemoryToken}`);
+  }
+
+  const res = await fetch(url, { method: 'GET', headers });
+  if (!res.ok) {
+    let errMsg = `Export failed (${res.status})`;
+    try {
+      const parsed = await res.json();
+      if (parsed?.error) errMsg = parsed.error;
+    } catch {
+      // ignore non-json body
+    }
+    throw new Error(errMsg);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const filename = match?.[1] ? match[1] : fallbackFilename;
+  return { blob, filename };
+}
+
 export interface StreamCallbacks {
   onMeta?: (meta: any) => void;
   onDelta: (text: string) => void;

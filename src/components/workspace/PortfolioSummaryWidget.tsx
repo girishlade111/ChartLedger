@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   BellPlus,
   Briefcase,
+  FileDown,
   Pencil,
   Plus,
   RefreshCw,
@@ -10,7 +11,7 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react';
-import { apiFetch } from '../../lib/api';
+import { apiDownloadBlob, apiFetch } from '../../lib/api';
 import type {
   EnrichedHolding,
   PortfolioPerformanceSeries,
@@ -58,6 +59,8 @@ export function PortfolioSummaryWidget({
   const [data, setData] = useState<PortfolioSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -166,6 +169,32 @@ export function PortfolioSummaryWidget({
     }
   };
 
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    setError(null);
+    setExportNotice(null);
+    try {
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const { blob, filename } = await apiDownloadBlob(
+        `/api/portfolio/export/pdf?range=${range}`,
+        `chartledger-portfolio-report-${range}d-${dateStamp}.pdf`
+      );
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setExportNotice(`Exported ${filename}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to export portfolio PDF report.');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const summary = data?.summary;
   const performance = data?.performance;
   const pnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
@@ -213,6 +242,17 @@ export function PortfolioSummaryWidget({
               </button>
             ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => void handleExportPdf()}
+            disabled={exportingPdf || loading}
+            aria-label="Export asset holdings and performance as PDF report"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <FileDown className="h-3.5 w-3.5" aria-hidden="true" />
+            {exportingPdf ? 'Exporting...' : 'Export PDF'}
+          </button>
 
           <button
             type="button"
@@ -323,6 +363,12 @@ export function PortfolioSummaryWidget({
             </button>
           </div>
         </form>
+      )}
+
+      {exportNotice && (
+        <p role="status" className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {exportNotice}
+        </p>
       )}
 
       {error && (

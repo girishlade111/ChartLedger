@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  ClipboardList,
   CreditCard,
   Eye,
   FilePlus2,
@@ -28,6 +29,7 @@ import { KnowledgeBaseView, SavedPromptsView } from './workspace/KnowledgeAndPro
 import { AnalysisHistoryView, WatchlistView } from './workspace/HistoryAndWatchlistView';
 import { PortfolioSummaryWidget } from './workspace/PortfolioSummaryWidget';
 import { PriceAlertsView } from './workspace/PriceAlertsView';
+import { AlertHistoryView } from './workspace/AlertHistoryView';
 import {
   AdminDashboardView,
   BillingAndWidgetsView,
@@ -42,6 +44,7 @@ export type WorkspaceSection =
   | 'saved'
   | 'watchlist'
   | 'alerts'
+  | 'alert-history'
   | 'knowledge'
   | 'prompts'
   | 'billing'
@@ -112,6 +115,7 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
     { id: 'saved', label: 'Saved Analyses', icon: Star },
     { id: 'watchlist', label: 'Watchlist', icon: Eye },
     { id: 'alerts', label: 'Price Alerts', icon: Bell },
+    { id: 'alert-history', label: 'Alert History', icon: ClipboardList },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
     { id: 'prompts', label: 'Saved Prompts', icon: Sparkles },
     { id: 'billing', label: 'Usage & Billing', icon: CreditCard },
@@ -523,6 +527,17 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                 setSection('new-analysis');
               }}
               onTriggeredCountChange={setTriggeredAlertsCount}
+              onOpenAlertHistory={() => setSection('alert-history')}
+            />
+          )}
+
+          {section === 'alert-history' && (
+            <AlertHistoryView
+              onAnalyzeSymbol={(sym) => {
+                setAnalyzeSymbol(sym);
+                setSection('new-analysis');
+              }}
+              onGoToAlerts={() => setSection('alerts')}
             />
           )}
 

@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildAlertHistoryStats,
   buildPortfolioPerformanceSeries,
   buildPortfolioSummary,
+  computeAlertOutcomeMetrics,
   computeHoldingValuation,
   evaluatePriceAlert,
 } from '../../src/utils/portfolioAndAlerts';
+import { generatePortfolioPdfBuffer } from '../../src/server/portfolioPdf';
 import type { OhlcvCandle } from '../../src/utils/indicators';
 
 test('evaluatePriceAlert triggers accurately for above/below conditions and respects paused/triggered status', () => {
@@ -110,3 +113,100 @@ test('buildPortfolioPerformanceSeries aligns multi-asset historical OHLCV and ha
   assert.equal(series.points[2].value, 62000);
   assert.equal(series.periodChangeValue, 10000);
 });
+
+test('computeAlertOutcomeMetrics and buildAlertHistoryStats evaluate post-trigger follow-through accurately', () => {
+  const favAbove = computeAlertOutcomeMetrics('above', 60000, 60100, 62000);
+  assert.equal(favAbove.followThrough, 'favorable');
+  assert.ok(favAbove.postTriggerMovePercent !== null && favAbove.postTriggerMovePercent > 3);
+
+  const revAbove = computeAlertOutcomeMetrics('above', 60000, 60100, 58500);
+  assert.equal(revAbove.followThrough, 'reversed');
+  assert.ok(revAbove.postTriggerMovePercent !== null && revAbove.postTriggerMovePercent < 0);
+
+  const favBelow = computeAlertOutcomeMetrics('below', 2000, 1990, 1900);
+  assert.equal(favBelow.followThrough, 'favorable');
+
+  const noFeed = computeAlertOutcomeMetrics('above', 100, 101, null);
+  assert.equal(noFeed.followThrough, 'unavailable');
+
+  const stats = buildAlertHistoryStats([
+    {
+      id: 'h1',
+      alertId: 'a1',
+      symbol: 'BTCUSDT',
+      market: 'Crypto',
+      condition: 'above',
+      targetPrice: 60000,
+      triggeredPrice: 60100,
+      alertNote: '',
+      outcomeStatus: 'actioned',
+      outcomeNote: 'Entered long',
+      triggeredAt: '2026-11-25T10:00:00Z',
+      reviewedAt: '2026-11-25T11:00:00Z',
+      metrics: favAbove,
+    },
+    {
+      id: 'h2',
+      alertId: 'a2',
+      symbol: 'ETHUSDT',
+      market: 'Crypto',
+      condition: 'above',
+      targetPrice: 2000,
+      triggeredPrice: 2010,
+      alertNote: '',
+      outcomeStatus: 'pending_review',
+      outcomeNote: '',
+      triggeredAt: '2026-11-25T12:00:00Z',
+      reviewedAt: null,
+      metrics: revAbove,
+    },
+  ]);
+
+  assert.equal(stats.totalTriggered, 2);
+  assert.equal(stats.reviewedCount, 1);
+  assert.equal(stats.pendingReviewCount, 1);
+  assert.equal(stats.actionedCount, 1);
+  assert.equal(stats.evaluableFollowThroughCount, 2);
+  assert.equal(stats.followThroughRatePercent, 50);
+});
+
+test('generatePortfolioPdfBuffer builds a valid PDF document with holdings and curve', async () => {
+  const summary = buildPortfolioSummary([
+    {
+      holding: { id: '1', symbol: 'BTCUSDT', market: 'Crypto', quantity: 0.5, avgCost: 50000 },
+      livePrice: 60000,
+      change24hPercent: 2.5,
+    },
+  ]);
+  const day = 86400;
+  const baseTs = 1760000000 - (1760000000 % day);
+  const performance = buildPortfolioPerformanceSeries(
+    [
+      {
+        holding: { id: '1', symbol: 'BTCUSDT', market: 'Crypto', quantity: 0.5, avgCost: 50000 },
+        candles: [
+          { time: baseTs, open: 50000, high: 52000, low: 49500, close: 51000, volume: 10 },
+          { time: baseTs + day, open: 51000, high: 61000, low: 50800, close: 60000, volume: 15 },
+        ],
+      },
+    ],
+    30
+  );
+
+  const pdfBuffer = await generatePortfolioPdfBuffer({
+    ownerName: 'Alex Trader',
+    ownerEmail: 'alex@example.com',
+    rangeDays: 30,
+    generatedAt: '2026-11-25T16:00:00Z',
+    summary,
+    performance,
+  });
+
+  assert.ok(Buffer.isBuffer(pdfBuffer));
+  assert.ok(pdfBuffer.length > 1200, 'Expected non-trivial PDF size');
+  assert.equal(pdfBuffer.subarray(0, 5).toString('ascii'), '%PDF-');
+  const rawPdf = pdfBuffer.toString('latin1');
+  assert.ok(rawPdf.includes('%%EOF'));
+  assert.ok(rawPdf.includes('/Count 1'), 'Expected 1-page PDF with zero blank overflow pages');
+});
+

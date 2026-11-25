@@ -396,6 +396,28 @@ export const portfolioHoldings = pgTable(
   (t) => [index('portfolio_holdings_user_idx').on(t.userId)]
 );
 
+export const priceAlertHistory = pgTable(
+  'price_alert_history',
+  {
+    id: text('id').primaryKey(), // UUID
+    userId: integer('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    alertId: text('alert_id').references(() => priceAlerts.id, { onDelete: 'set null' }),
+    symbol: text('symbol').notNull(),
+    market: text('market').notNull().default('Crypto'),
+    condition: text('condition').notNull().default('above'), // above | below
+    targetPrice: doublePrecision('target_price').notNull(),
+    triggeredPrice: doublePrecision('triggered_price').notNull(),
+    alertNote: text('alert_note').notNull().default(''),
+    outcomeStatus: text('outcome_status').notNull().default('pending_review'), // pending_review | actioned | confirmed_move | false_breakout | ignored
+    outcomeNote: text('outcome_note').notNull().default(''),
+    triggeredAt: timestamp('triggered_at').defaultNow().notNull(),
+    reviewedAt: timestamp('reviewed_at'),
+  },
+  (t) => [index('price_alert_history_user_triggered_idx').on(t.userId, t.triggeredAt)]
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   plan: one(plans, { fields: [users.planId], references: [plans.id] }),
   subscription: one(subscriptions, { fields: [users.id], references: [subscriptions.userId] }),
@@ -405,6 +427,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   prompts: many(savedPrompts),
   watchlist: many(watchlistItems),
   priceAlerts: many(priceAlerts),
+  priceAlertHistory: many(priceAlertHistory),
   portfolioHoldings: many(portfolioHoldings),
 }));
 

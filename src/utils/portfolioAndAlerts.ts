@@ -315,3 +315,150 @@ export function buildPortfolioPerformanceSeries(
     costBasisFallbackAssets,
   };
 }
+
+export type AlertOutcomeStatus =
+  | 'pending_review'
+  | 'actioned'
+  | 'confirmed_move'
+  | 'false_breakout'
+  | 'ignored';
+
+export type AlertFollowThrough = 'favorable' | 'reversed' | 'flat' | 'unavailable';
+
+export interface AlertHistoryEntryInput {
+  id: string;
+  alertId: string | null;
+  symbol: string;
+  market: string;
+  condition: PriceAlertCondition;
+  targetPrice: number;
+  triggeredPrice: number;
+  alertNote: string;
+  outcomeStatus: AlertOutcomeStatus;
+  outcomeNote: string;
+  triggeredAt: string;
+  reviewedAt: string | null;
+}
+
+export interface AlertOutcomeMetrics {
+  breachDeltaAmount: number;
+  breachDeltaPercent: number;
+  currentPrice: number | null;
+  postTriggerMoveAmount: number | null;
+  postTriggerMovePercent: number | null;
+  followThrough: AlertFollowThrough;
+}
+
+export interface EnrichedAlertHistoryEntry extends AlertHistoryEntryInput {
+  metrics: AlertOutcomeMetrics;
+}
+
+export interface AlertHistoryStats {
+  totalTriggered: number;
+  pendingReviewCount: number;
+  reviewedCount: number;
+  actionedCount: number;
+  confirmedMoveCount: number;
+  falseBreakoutCount: number;
+  favorableFollowThroughCount: number;
+  evaluableFollowThroughCount: number;
+  followThroughRatePercent: number | null;
+}
+
+export function computeAlertOutcomeMetrics(
+  condition: PriceAlertCondition,
+  targetPrice: number,
+  triggeredPrice: number,
+  currentPrice: number | null
+): AlertOutcomeMetrics {
+  const breachDeltaAmount = Number((triggeredPrice - targetPrice).toFixed(6));
+  const breachDeltaPercent =
+    targetPrice > 0
+      ? Math.round(((triggeredPrice - targetPrice) / targetPrice) * 10000) / 100
+      : 0;
+
+  if (
+    currentPrice === null ||
+    !Number.isFinite(currentPrice) ||
+    currentPrice <= 0 ||
+    !Number.isFinite(triggeredPrice) ||
+    triggeredPrice <= 0
+  ) {
+    return {
+      breachDeltaAmount,
+      breachDeltaPercent,
+      currentPrice: null,
+      postTriggerMoveAmount: null,
+      postTriggerMovePercent: null,
+      followThrough: 'unavailable',
+    };
+  }
+
+  const postTriggerMoveAmount = Number((currentPrice - triggeredPrice).toFixed(6));
+  const postTriggerMovePercent =
+    Math.round(((currentPrice - triggeredPrice) / triggeredPrice) * 10000) / 100;
+
+  let followThrough: AlertFollowThrough = 'flat';
+  if (Math.abs(postTriggerMovePercent) >= 0.05) {
+    const movedUp = currentPrice > triggeredPrice;
+    if ((condition === 'above' && movedUp) || (condition === 'below' && !movedUp)) {
+      followThrough = 'favorable';
+    } else {
+      followThrough = 'reversed';
+    }
+  }
+
+  return {
+    breachDeltaAmount,
+    breachDeltaPercent,
+    currentPrice,
+    postTriggerMoveAmount,
+    postTriggerMovePercent,
+    followThrough,
+  };
+}
+
+export function buildAlertHistoryStats(
+  entries: EnrichedAlertHistoryEntry[]
+): AlertHistoryStats {
+  let pendingReviewCount = 0;
+  let actionedCount = 0;
+  let confirmedMoveCount = 0;
+  let falseBreakoutCount = 0;
+  let favorableFollowThroughCount = 0;
+  let evaluableFollowThroughCount = 0;
+
+  for (const e of entries) {
+    if (e.outcomeStatus === 'pending_review') pendingReviewCount += 1;
+    if (e.outcomeStatus === 'actioned') actionedCount += 1;
+    if (e.outcomeStatus === 'confirmed_move') confirmedMoveCount += 1;
+    if (e.outcomeStatus === 'false_breakout') falseBreakoutCount += 1;
+
+    if (e.metrics.followThrough === 'favorable' || e.metrics.followThrough === 'reversed') {
+      evaluableFollowThroughCount += 1;
+      if (e.metrics.followThrough === 'favorable') {
+        favorableFollowThroughCount += 1;
+      }
+    }
+  }
+
+  const totalTriggered = entries.length;
+  const reviewedCount = totalTriggered - pendingReviewCount;
+  const followThroughRatePercent =
+    evaluableFollowThroughCount > 0
+      ? Math.round((favorableFollowThroughCount / evaluableFollowThroughCount) * 10000) / 100
+      : null;
+
+  return {
+    totalTriggered,
+    pendingReviewCount,
+    reviewedCount,
+    actionedCount,
+    confirmedMoveCount,
+    falseBreakoutCount,
+    favorableFollowThroughCount,
+    evaluableFollowThroughCount,
+    followThroughRatePercent,
+  };
+}
+

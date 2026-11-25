@@ -411,5 +411,68 @@ test('Full-stack API, Security, Tenant Isolation, RAG, SSE & Billing Integration
     });
     assert.equal(delA.status, 200);
   });
+
+  await t.test('12. Alert History logs triggered alerts persistently, updates outcomes, and enforces tenant isolation', async () => {
+    // Subtest 10 already triggered and deleted a BTCUSDT alert for User A — verify history persisted!
+    const histRes = await reqJson('/api/alerts/history?fresh=1', { token: tokenA });
+    assert.equal(histRes.status, 200, `Alert history fetch failed: ${JSON.stringify(histRes.data)}`);
+    assert.ok(Array.isArray(histRes.data.history) && histRes.data.history.length >= 1);
+    const entry = histRes.data.history[0];
+    assert.equal(entry.symbol, 'BTCUSDT');
+    assert.equal(entry.outcomeStatus, 'pending_review');
+    assert.ok(entry.metrics && typeof entry.metrics.breachDeltaAmount === 'number');
+
+    // User B cannot see, update, or delete User A's alert history
+    const histB = await reqJson('/api/alerts/history', { token: tokenB });
+    assert.equal(histB.status, 200);
+    assert.equal(histB.data.history.length, 0);
+
+    const patchB = await reqJson(`/api/alerts/history/${entry.id}`, {
+      method: 'PATCH',
+      token: tokenB,
+      body: { outcomeStatus: 'actioned', outcomeNote: 'Cross-tenant attempt' },
+    });
+    assert.equal(patchB.status, 404);
+
+    const delB = await reqJson(`/api/alerts/history/${entry.id}`, {
+      method: 'DELETE',
+      token: tokenB,
+    });
+    assert.equal(delB.status, 404);
+
+    // User A updates outcome status & note
+    const patchA = await reqJson(`/api/alerts/history/${entry.id}`, {
+      method: 'PATCH',
+      token: tokenA,
+      body: { outcomeStatus: 'actioned', outcomeNote: 'Executed scale-in on retest' },
+    });
+    assert.equal(patchA.status, 200);
+    assert.equal(patchA.data.entry.outcomeStatus, 'actioned');
+    assert.equal(patchA.data.entry.outcomeNote, 'Executed scale-in on retest');
+
+    // Delete history entry cleanly
+    const delA = await reqJson(`/api/alerts/history/${entry.id}`, {
+      method: 'DELETE',
+      token: tokenA,
+    });
+    assert.equal(delA.status, 200);
+  });
+
+  await t.test('13. Portfolio PDF report export requires auth and returns a valid binary PDF document', async () => {
+    const unauthPdf = await fetch(`${BASE}/api/portfolio/export/pdf?range=30`);
+    assert.equal(unauthPdf.status, 401);
+
+    const pdfRes = await fetch(`${BASE}/api/portfolio/export/pdf?range=30`, {
+      headers: { Authorization: `Bearer ${tokenA}` },
+    });
+    assert.equal(pdfRes.status, 200);
+    assert.ok((pdfRes.headers.get('content-type') || '').includes('application/pdf'));
+    assert.ok((pdfRes.headers.get('content-disposition') || '').includes('.pdf'));
+
+    const buf = Buffer.from(await pdfRes.arrayBuffer());
+    assert.ok(buf.length > 1200, `Expected PDF > 1200 bytes, got ${buf.length}`);
+    assert.equal(buf.subarray(0, 5).toString('ascii'), '%PDF-');
+  });
 });
+
 
