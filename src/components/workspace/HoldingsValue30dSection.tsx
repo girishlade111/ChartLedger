@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { LineChart as LineChartIcon, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  Download,
+  LineChart as LineChartIcon,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import {
   CartesianGrid,
   Line,
@@ -11,6 +17,7 @@ import {
   YAxis,
 } from 'recharts';
 import { apiFetch } from '../../lib/api';
+import { buildHoldings30dTrendCsv, triggerCsvDownload } from '../../utils/csvExport';
 import type {
   PortfolioPerformanceSeries,
   PortfolioSummary,
@@ -96,14 +103,18 @@ export function HoldingsValue30dSection({
   const [data, setData] = useState<Portfolio30dResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load30d = useCallback(async (silent = false) => {
+  const load30d = useCallback(async (silent = false, forceFresh = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     setError(null);
     try {
-      const res = await apiFetch<Portfolio30dResponse>('/api/portfolio/summary?range=30');
+      const freshParam = forceFresh ? '&fresh=1' : '';
+      const res = await apiFetch<Portfolio30dResponse>(
+        `/api/portfolio/summary?range=30${freshParam}`
+      );
       setData(res);
     } catch (err: any) {
       setError(err.message || 'Unable to load 30-day holdings history.');
@@ -114,7 +125,7 @@ export function HoldingsValue30dSection({
   }, []);
 
   useEffect(() => {
-    void load30d(refreshTrigger > 0);
+    void load30d(refreshTrigger > 0, false);
   }, [refreshTrigger, load30d]);
 
   const chartStats = useMemo(() => {
@@ -124,6 +135,15 @@ export function HoldingsValue30dSection({
       data.summary.totalCostBasis
     );
   }, [data]);
+
+  const handleDownloadCsv = () => {
+    if (!data || !chartStats || chartStats.points.length === 0) return;
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `chartledger-holdings-30d-trend-${dateStamp}.csv`;
+    const csv = buildHoldings30dTrendCsv(chartStats.points, data.summary.totalCostBasis);
+    triggerCsvDownload(csv, filename);
+    setExportNotice(`Downloaded ${filename}`);
+  };
 
   const isDark = theme === 'dark';
   const periodPositive = (chartStats?.changeValue ?? 0) >= 0;
@@ -155,17 +175,36 @@ export function HoldingsValue30dSection({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void load30d(true)}
-          disabled={refreshing}
-          aria-label="Refresh 30-day holdings chart"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadCsv}
+            disabled={loading || !chartStats || chartStats.points.length === 0}
+            aria-label="Download 30-Day Holdings Value Trend as CSV"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            Download as CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void load30d(true, true)}
+            disabled={refreshing}
+            aria-label="Refresh 30-day holdings chart"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {exportNotice && (
+        <p role="status" className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {exportNotice}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mt-3 text-xs font-medium text-red-600 dark:text-red-400">

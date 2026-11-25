@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import { Activity, Download, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
 import { apiFetch } from '../../lib/api';
+import { buildMarketSentimentCsv, triggerCsvDownload } from '../../utils/csvExport';
 import type {
   PortfolioMarketSentiment,
   SentimentLabel,
@@ -51,16 +52,17 @@ export function MarketSentimentWidget({
   const [data, setData] = useState<SentimentResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadSentiment = useCallback(
-    async (tf = timeframe, silent = false) => {
+    async (tf = timeframe, silent = false, forceFresh = false) => {
       if (!silent) setLoading(true);
       else setRefreshing(true);
       setError(null);
       try {
         const res = await apiFetch<SentimentResponse>(
-          `/api/portfolio/sentiment?timeframe=${tf}`
+          `/api/portfolio/sentiment?timeframe=${tf}${forceFresh ? '&fresh=1' : ''}`
         );
         setData(res);
       } catch (err: any) {
@@ -74,7 +76,7 @@ export function MarketSentimentWidget({
   );
 
   useEffect(() => {
-    void loadSentiment(timeframe, refreshTrigger > 0);
+    void loadSentiment(timeframe, refreshTrigger > 0, false);
   }, [timeframe, refreshTrigger, loadSentiment]);
 
   const sentiment = data?.sentiment;
@@ -104,7 +106,7 @@ export function MarketSentimentWidget({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div
             role="group"
             aria-label="Technical indicator timeframe"
@@ -128,7 +130,27 @@ export function MarketSentimentWidget({
 
           <button
             type="button"
-            onClick={() => void loadSentiment(timeframe, true)}
+            data-testid="csv-download-market-sentiment"
+            onClick={() => {
+              if (!sentiment) return;
+              const dateStamp = new Date().toISOString().slice(0, 10);
+              const filename = `chartledger-market-sentiment-${timeframe}-${dateStamp}.csv`;
+              const csv = buildMarketSentimentCsv(sentiment, timeframe);
+              triggerCsvDownload(csv, filename);
+              setExportNotice(`Exported ${filename}`);
+            }}
+            disabled={loading || !sentiment || sentiment.totalHoldingsCount === 0}
+            aria-label="Download Market Sentiment as CSV"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            Download as CSV
+          </button>
+
+          <button
+            type="button"
+            data-testid="refresh-widget-market-sentiment"
+            onClick={() => void loadSentiment(timeframe, true, true)}
             disabled={refreshing}
             aria-label="Refresh technical market sentiment"
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
@@ -138,6 +160,12 @@ export function MarketSentimentWidget({
           </button>
         </div>
       </div>
+
+      {exportNotice && (
+        <p role="status" className="mt-2.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {exportNotice}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mt-3 text-xs font-medium text-red-600 dark:text-red-400">

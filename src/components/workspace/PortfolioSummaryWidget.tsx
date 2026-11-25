@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   BellPlus,
   Briefcase,
+  Download,
   FileDown,
   Pencil,
   Plus,
@@ -12,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { apiDownloadBlob, apiFetch } from '../../lib/api';
+import { buildPortfolioHoldingsCsv, triggerCsvDownload } from '../../utils/csvExport';
 import type {
   EnrichedHolding,
   PortfolioPerformanceSeries,
@@ -78,13 +80,14 @@ export function PortfolioSummaryWidget({
   const [editAvgCost, setEditAvgCost] = useState('');
 
   const loadPortfolio = useCallback(
-    async (selectedRange = range, silent = false) => {
+    async (selectedRange = range, silent = false, forceFresh = false) => {
       if (!silent) setLoading(true);
       else setRefreshing(true);
       setError(null);
       try {
+        const freshParam = forceFresh ? '&fresh=1' : '';
         const res = await apiFetch<PortfolioSummaryResponse>(
-          `/api/portfolio/summary?range=${selectedRange}`
+          `/api/portfolio/summary?range=${selectedRange}${freshParam}`
         );
         setData(res);
       } catch (err: any) {
@@ -98,7 +101,7 @@ export function PortfolioSummaryWidget({
   );
 
   useEffect(() => {
-    void loadPortfolio(range, false);
+    void loadPortfolio(range, false, false);
   }, [range, loadPortfolio]);
 
   const handleAddHolding = async (e: React.FormEvent) => {
@@ -200,6 +203,15 @@ export function PortfolioSummaryWidget({
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (!data?.summary) return;
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `chartledger-asset-holdings-${range}d-${dateStamp}.csv`;
+    const csv = buildPortfolioHoldingsCsv(data.summary);
+    triggerCsvDownload(csv, filename);
+    setExportNotice(`Downloaded ${filename}`);
+  };
+
   const summary = data?.summary;
   const performance = data?.performance;
   const pnlPositive = (summary?.totalUnrealizedPnl ?? 0) >= 0;
@@ -250,6 +262,17 @@ export function PortfolioSummaryWidget({
 
           <button
             type="button"
+            onClick={handleDownloadCsv}
+            disabled={loading || !summary || summary.holdingCount === 0}
+            aria-label="Download Asset Holdings as CSV"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            Download as CSV
+          </button>
+
+          <button
+            type="button"
             onClick={() => void handleExportPdf()}
             disabled={exportingPdf || loading}
             aria-label="Export asset holdings and performance as PDF report"
@@ -261,9 +284,9 @@ export function PortfolioSummaryWidget({
 
           <button
             type="button"
-            onClick={() => void loadPortfolio(range, true)}
+            onClick={() => void loadPortfolio(range, true, true)}
             disabled={refreshing}
-            aria-label="Refresh portfolio market data"
+            aria-label="Refresh Asset Holdings market data"
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />

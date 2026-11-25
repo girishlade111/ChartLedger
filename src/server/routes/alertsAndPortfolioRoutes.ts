@@ -182,7 +182,11 @@ async function evaluateAndEnrichAlerts(userId: number, bypassCache = false) {
   };
 }
 
-async function computeUserPortfolioData(userId: number, rangeParam: number) {
+async function computeUserPortfolioData(
+  userId: number,
+  rangeParam: number,
+  bypassCache = false
+) {
   const rangeDays = rangeParam === 7 ? 7 : rangeParam === 90 ? 90 : 30;
   const candleTf = rangeDays === 7 ? '4h' : '1d';
   const candleBars = rangeDays === 7 ? 42 : rangeDays; // 42 x 4h = 7 days
@@ -200,8 +204,8 @@ async function computeUserPortfolioData(userId: number, rangeParam: number) {
   await Promise.all(
     uniqueSymbols.map(async (sym) => {
       const [spot, ohlcv] = await Promise.all([
-        fetchRealTimeSpotPrice(sym, false),
-        fetchCryptoMarketData(sym, candleTf),
+        fetchRealTimeSpotPrice(sym, bypassCache),
+        fetchCryptoMarketData(sym, candleTf, bypassCache),
       ]);
       spotMap.set(sym, spot);
       ohlcvMap.set(sym, ohlcv);
@@ -580,7 +584,12 @@ router.delete('/api/alerts/:id', requireAuth, async (req: AuthRequest, res) => {
 
 router.get('/api/portfolio/summary', requireAuth, marketPollLimiter, async (req: AuthRequest, res) => {
   try {
-    const data = await computeUserPortfolioData(req.dbUser!.id, Number(req.query.range || 30));
+    const bypassCache = req.query.fresh === '1' || req.query.fresh === 'true';
+    const data = await computeUserPortfolioData(
+      req.dbUser!.id,
+      Number(req.query.range || 30),
+      bypassCache
+    );
     res.json({
       summary: data.summary,
       performance: data.performance,
@@ -721,6 +730,7 @@ router.get('/api/portfolio/sentiment', requireAuth, marketPollLimiter, async (re
   try {
     const tfParam = String(req.query.timeframe || '4h').toLowerCase();
     const timeframe = tfParam === '1d' ? '1d' : '4h';
+    const bypassCache = req.query.fresh === '1' || req.query.fresh === 'true';
 
     const rows = await db
       .select()
@@ -735,8 +745,8 @@ router.get('/api/portfolio/sentiment', requireAuth, marketPollLimiter, async (re
     await Promise.all(
       uniqueSymbols.map(async (sym) => {
         const [spot, ohlcv] = await Promise.all([
-          fetchRealTimeSpotPrice(sym, false),
-          fetchCryptoMarketData(sym, timeframe),
+          fetchRealTimeSpotPrice(sym, bypassCache),
+          fetchCryptoMarketData(sym, timeframe, bypassCache),
         ]);
         spotMap.set(sym, spot);
         ohlcvMap.set(sym, ohlcv);

@@ -20,6 +20,14 @@ import {
   normalizeDashboardOrder,
   reorderDashboardWidgets,
 } from '../../src/utils/dashboardLayout';
+import {
+  buildHoldings30dTrendCsv,
+  buildMarketSentimentCsv,
+  buildPortfolioHoldingsCsv,
+  buildRecentAnalysesCsv,
+  buildWorkspaceKpisCsv,
+  escapeCsvCell,
+} from '../../src/utils/csvExport';
 import type { OhlcvCandle } from '../../src/utils/indicators';
 
 test('evaluatePriceAlert triggers accurately for above/below conditions and respects paused/triggered status', () => {
@@ -307,6 +315,103 @@ test('dashboardLayout utilities normalize, drag-reorder, move, and format 30-day
   assert.ok(chartStats.yDomainMin <= 28000);
   assert.ok(chartStats.yDomainMax >= 36000);
 });
+
+test('csvExport builders format RFC 4180 CSVs and neutralize spreadsheet formula injection', () => {
+  // Formula-injection protection on untrusted strings, while keeping numbers clean
+  assert.equal(escapeCsvCell('=HYPERLINK("http://evil")'), `"'=HYPERLINK(""http://evil"")"`);
+  assert.equal(escapeCsvCell('+SUM(A1:A5)'), `'+SUM(A1:A5)`);
+  assert.equal(escapeCsvCell(-12.5), '-12.5');
+  assert.equal(escapeCsvCell('Hello, "World"'), '"Hello, ""World"""');
+
+  const summary = buildPortfolioSummary([
+    {
+      holding: {
+        id: 'h1',
+        symbol: 'BTCUSDT',
+        market: 'Crypto',
+        quantity: 0.5,
+        avgCost: 50000,
+        notes: '=CMD|calc, breakout',
+      },
+      livePrice: 60000,
+      change24hPercent: 2.5,
+      sourceName: 'Binance Spot',
+      fetchedAt: '2026-11-25T00:00:00Z',
+    },
+  ]);
+  const holdingsCsv = buildPortfolioHoldingsCsv(summary);
+  const holdingsLines = holdingsCsv.split('\r\n');
+  assert.equal(holdingsLines.length, 3); // header + BTCUSDT + TOTAL
+  assert.ok(holdingsLines[0].includes('Symbol,Market,Quantity'));
+  assert.ok(holdingsLines[1].includes('BTCUSDT,Crypto,0.5,50000,60000'));
+  assert.ok(holdingsLines[1].includes(`"'=CMD|calc, breakout"`));
+  assert.ok(holdingsLines[2].startsWith('TOTAL,'));
+
+  const trendStats = formatHoldings30dChartData(
+    [{ time: 1762041600, value: 30000, costBasis: 25000, returnPercent: 20 }],
+    25000
+  );
+  const trendCsv = buildHoldings30dTrendCsv(trendStats.points, 25000);
+  assert.ok(trendCsv.includes('Date (UTC),Unix Timestamp,Total Holdings Value (USD)'));
+  assert.ok(trendCsv.includes('30000,25000,5000,20'));
+
+  const sentimentCsv = buildMarketSentimentCsv(
+    {
+      overallScore: 72,
+      overallLabel: 'Bullish',
+      bullishSignals: 4,
+      neutralSignals: 1,
+      bearishSignals: 0,
+      scoredHoldingsCount: 1,
+      totalHoldingsCount: 1,
+      assets: [
+        {
+          symbol: 'BTCUSDT',
+          market: 'Crypto',
+          weightPercent: 100,
+          currentValue: 30000,
+          score: 72,
+          label: 'Bullish',
+          bullishCount: 4,
+          neutralCount: 1,
+          bearishCount: 0,
+          available: true,
+          signals: [{ name: 'RSI(14)', reading: '61.2', vote: 'bullish' }],
+        },
+      ],
+    },
+    '4h'
+  );
+  assert.ok(sentimentCsv.includes('BTCUSDT,Crypto,4H,100,30000,72,Bullish,4,1,0'));
+  assert.ok(sentimentCsv.includes('PORTFOLIO WEIGHTED'));
+
+  const analysesCsv = buildRecentAnalysesCsv([
+    {
+      title: 'BTC 4H Breakout',
+      symbol: 'BTCUSDT',
+      timeframe: '4H',
+      marketBias: 'bullish',
+      isFavorite: true,
+      createdAt: '2026-11-25T10:00:00Z',
+    },
+  ]);
+  assert.ok(analysesCsv.includes('BTC 4H Breakout,BTCUSDT,4H,bullish,true'));
+
+  const kpisCsv = buildWorkspaceKpisCsv({
+    planName: 'Free Research',
+    analysesCount: 3,
+    analysesLimit: 15,
+    messagesCount: 12,
+    messagesLimit: 75,
+    savedFavoritesCount: 1,
+    kbDocsCount: 2,
+    kbDocsLimit: 5,
+    exportedAtIso: '2026-11-25T10:00:00Z',
+  });
+  assert.equal(kpisCsv.split('\r\n').length, 5);
+  assert.ok(kpisCsv.includes('Analyses This Month,3,15,Free Research'));
+});
+
 
 
 

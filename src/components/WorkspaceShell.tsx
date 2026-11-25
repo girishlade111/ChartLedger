@@ -7,6 +7,7 @@ import {
   BookOpen,
   ClipboardList,
   CreditCard,
+  Download,
   Eye,
   FilePlus2,
   GripVertical,
@@ -17,6 +18,7 @@ import {
   Menu,
   MessageSquare,
   Moon,
+  RefreshCw,
   RotateCcw,
   Settings,
   Shield,
@@ -27,6 +29,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
+import {
+  buildRecentAnalysesCsv,
+  buildWorkspaceKpisCsv,
+  triggerCsvDownload,
+} from '../utils/csvExport';
 import {
   DASHBOARD_WIDGET_LABELS,
   DEFAULT_DASHBOARD_WIDGET_ORDER,
@@ -95,6 +102,11 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
   const [draggedWidget, setDraggedWidget] = useState<DashboardWidgetId | null>(null);
   const [dragOverWidget, setDragOverWidget] = useState<DashboardWidgetId | null>(null);
   const [layoutSavedNotice, setLayoutSavedNotice] = useState<string | null>(null);
+  const [refreshingKpis, setRefreshingKpis] = useState(false);
+  const [refreshingQuickActions, setRefreshingQuickActions] = useState(false);
+  const [refreshingAnalyses, setRefreshingAnalyses] = useState(false);
+  const [kpiExportNotice, setKpiExportNotice] = useState<string | null>(null);
+  const [analysesExportNotice, setAnalysesExportNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setWidgetOrder(normalizeDashboardOrder(user?.preferencesJson?.dashboardWidgetOrder));
@@ -148,6 +160,52 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
   useEffect(() => {
     void loadWorkspaceData();
   }, [loadWorkspaceData]);
+
+  const refreshKpisWidget = useCallback(async () => {
+    setRefreshingKpis(true);
+    try {
+      const [bRes, aRes] = await Promise.all([
+        apiFetch('/api/billing/subscription'),
+        apiFetch<{ analyses: any[] }>('/api/analyses'),
+      ]);
+      setBillingSummary(bRes);
+      setAnalyses(aRes.analyses);
+    } catch (err) {
+      console.error('KPI widget refresh error:', err);
+    } finally {
+      setRefreshingKpis(false);
+    }
+  }, []);
+
+  const refreshQuickActionsWidget = useCallback(async () => {
+    setRefreshingQuickActions(true);
+    try {
+      const [alertRes, provRes] = await Promise.all([
+        apiFetch<{ alerts: Array<{ status: string }> }>('/api/alerts?fresh=1'),
+        apiFetch<{ providers: any[] }>('/api/providers'),
+      ]);
+      setTriggeredAlertsCount(
+        alertRes.alerts.filter((al) => al.status === 'triggered').length
+      );
+      setProviders(provRes.providers);
+    } catch (err) {
+      console.error('Quick actions widget refresh error:', err);
+    } finally {
+      setRefreshingQuickActions(false);
+    }
+  }, []);
+
+  const refreshRecentAnalysesWidget = useCallback(async () => {
+    setRefreshingAnalyses(true);
+    try {
+      const aRes = await apiFetch<{ analyses: any[] }>('/api/analyses');
+      setAnalyses(aRes.analyses);
+    } catch (err) {
+      console.error('Recent analyses widget refresh error:', err);
+    } finally {
+      setRefreshingAnalyses(false);
+    }
+  }, []);
 
   const handleOpenChat = (analysisId: string, prompt?: string) => {
     setChatAnalysisId(analysisId);
@@ -388,90 +446,184 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                 let body: React.ReactNode = null;
                 if (widgetId === 'kpi-overview') {
                   body = (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                        <div className="text-xs text-zinc-500">Analyses This Month</div>
-                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                          {billingSummary?.usage.analysesCount ?? analyses.length}
-                          <span className="text-xs font-normal text-zinc-500">
-                            {' '}
-                            / {billingSummary?.plan.analysesLimit ?? 15}
-                          </span>
+                    <section
+                      aria-label="Workspace Usage KPIs"
+                      className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]"
+                    >
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h2 className="font-display text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            Workspace Usage KPIs
+                          </h2>
+                          <p className="mt-0.5 text-xs text-zinc-500">
+                            Monthly research quota utilization and saved workspace inventory.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            data-testid="csv-download-kpi-overview"
+                            onClick={() => {
+                              const dateStamp = new Date().toISOString().slice(0, 10);
+                              const filename = `chartledger-workspace-kpis-${dateStamp}.csv`;
+                              const csv = buildWorkspaceKpisCsv({
+                                planName: billingSummary?.plan?.name || 'Free Research',
+                                analysesCount: billingSummary?.usage.analysesCount ?? analyses.length,
+                                analysesLimit: billingSummary?.plan.analysesLimit ?? 15,
+                                messagesCount: billingSummary?.usage.messagesCount ?? 0,
+                                messagesLimit: billingSummary?.plan.messagesLimit ?? 75,
+                                savedFavoritesCount: analyses.filter((a) => a.isFavorite).length,
+                                kbDocsCount: billingSummary?.usage.kbDocsCount ?? 0,
+                                kbDocsLimit: billingSummary?.plan.kbDocsLimit ?? 5,
+                                exportedAtIso: new Date().toISOString(),
+                              });
+                              triggerCsvDownload(csv, filename);
+                              setKpiExportNotice(`Exported ${filename}`);
+                            }}
+                            aria-label="Download Workspace KPIs as CSV"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                          >
+                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                            Download as CSV
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="refresh-widget-kpi-overview"
+                            onClick={() => void refreshKpisWidget()}
+                            disabled={refreshingKpis}
+                            aria-label="Refresh workspace usage KPIs"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                          >
+                            <RefreshCw
+                              className={`h-3.5 w-3.5 ${refreshingKpis ? 'animate-spin' : ''}`}
+                              aria-hidden="true"
+                            />
+                            Refresh
+                          </button>
                         </div>
                       </div>
-                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                        <div className="text-xs text-zinc-500">AI Chat Messages</div>
-                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                          {billingSummary?.usage.messagesCount ?? 0}
-                          <span className="text-xs font-normal text-zinc-500">
-                            {' '}
-                            / {billingSummary?.plan.messagesLimit ?? 75}
-                          </span>
+                      {kpiExportNotice && (
+                        <p
+                          role="status"
+                          className="mb-3 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                        >
+                          {kpiExportNotice}
+                        </p>
+                      )}
+                      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800/80 dark:bg-[#0B0B0E]">
+                          <div className="text-xs text-zinc-500">Analyses This Month</div>
+                          <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                            {billingSummary?.usage.analysesCount ?? analyses.length}
+                            <span className="text-xs font-normal text-zinc-500">
+                              {' '}
+                              / {billingSummary?.plan.analysesLimit ?? 15}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800/80 dark:bg-[#0B0B0E]">
+                          <div className="text-xs text-zinc-500">AI Chat Messages</div>
+                          <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                            {billingSummary?.usage.messagesCount ?? 0}
+                            <span className="text-xs font-normal text-zinc-500">
+                              {' '}
+                              / {billingSummary?.plan.messagesLimit ?? 75}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800/80 dark:bg-[#0B0B0E]">
+                          <div className="text-xs text-zinc-500">Saved Favorites</div>
+                          <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                            {analyses.filter((a) => a.isFavorite).length}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800/80 dark:bg-[#0B0B0E]">
+                          <div className="text-xs text-zinc-500">Indexed Knowledge Docs</div>
+                          <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                            {billingSummary?.usage.kbDocsCount ?? 0}
+                            <span className="text-xs font-normal text-zinc-500">
+                              {' '}
+                              / {billingSummary?.plan.kbDocsLimit ?? 5}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                        <div className="text-xs text-zinc-500">Saved Favorites</div>
-                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                          {analyses.filter((a) => a.isFavorite).length}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                        <div className="text-xs text-zinc-500">Indexed Knowledge Docs</div>
-                        <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                          {billingSummary?.usage.kbDocsCount ?? 0}
-                          <span className="text-xs font-normal text-zinc-500">
-                            {' '}
-                            / {billingSummary?.plan.kbDocsLimit ?? 5}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    </section>
                   );
                 } else if (widgetId === 'quick-actions') {
                   body = (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() => setSection('new-analysis')}
-                        className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-5 text-left transition-colors hover:bg-emerald-600/15"
-                      >
-                        <FilePlus2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        <div className="mt-2 font-display text-sm font-semibold">
-                          Upload Chart Screenshot
+                    <section
+                      aria-label="Quick Research Actions"
+                      className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]"
+                    >
+                      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h2 className="font-display text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                            Quick Research Actions
+                          </h2>
+                          <p className="mt-0.5 text-xs text-zinc-500">
+                            Launch chart pipelines, grounded chat, or alert sync directly from overview.
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                          Run the 8-stage structured analysis pipeline with deterministic OHLCV
-                          indicators.
-                        </p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSection('chat')}
-                        className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
-                      >
-                        <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-                        <div className="mt-2 font-display text-sm font-semibold">
-                          Open Streaming Research Chat
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                          Interrogate saved chart setups with private knowledge-base RAG grounding.
-                        </p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSection('knowledge')}
-                        className="rounded-xl border border-zinc-200 bg-white p-5 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-[#111114]"
-                      >
-                        <BookOpen className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-                        <div className="mt-2 font-display text-sm font-semibold">
-                          Index Trading Playbooks
-                        </div>
-                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                          Add private strategy checklists and notes to cite in future chart
-                          analyses.
-                        </p>
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          data-testid="refresh-widget-quick-actions"
+                          onClick={() => void refreshQuickActionsWidget()}
+                          disabled={refreshingQuickActions}
+                          aria-label="Refresh live alerts and workspace status"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                        >
+                          <RefreshCw
+                            className={`h-3.5 w-3.5 ${refreshingQuickActions ? 'animate-spin' : ''}`}
+                            aria-hidden="true"
+                          />
+                          Refresh
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+                        <button
+                          type="button"
+                          onClick={() => setSection('new-analysis')}
+                          className="rounded-lg border border-emerald-500/40 bg-emerald-600/10 p-4 text-left transition-colors hover:bg-emerald-600/15"
+                        >
+                          <FilePlus2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                          <div className="mt-2 font-display text-sm font-semibold">
+                            Upload Chart Screenshot
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                            Run the 8-stage structured analysis pipeline with deterministic OHLCV
+                            indicators.
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSection('chat')}
+                          className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800/80 dark:bg-[#0B0B0E]"
+                        >
+                          <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                          <div className="mt-2 font-display text-sm font-semibold">
+                            Open Streaming Research Chat
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                            Interrogate saved chart setups with private knowledge-base RAG grounding.
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSection('knowledge')}
+                          className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-left transition-colors hover:border-zinc-400 dark:border-zinc-800/80 dark:bg-[#0B0B0E]"
+                        >
+                          <BookOpen className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+                          <div className="mt-2 font-display text-sm font-semibold">
+                            Index Trading Playbooks
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                            Add private strategy checklists and notes to cite in future chart
+                            analyses.
+                          </p>
+                        </button>
+                      </div>
+                    </section>
                   );
                 } else if (widgetId === 'portfolio-summary') {
                   body = (
@@ -505,19 +657,63 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                   );
                 } else if (widgetId === 'recent-analyses') {
                   body = (
-                    <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]">
-                      <div className="mb-3 flex items-center justify-between">
+                    <section
+                      aria-label="Recent Chart Analyses"
+                      className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#111114]"
+                    >
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="font-display text-base font-semibold">
                           Recent Chart Analyses
                         </h2>
-                        <button
-                          type="button"
-                          onClick={() => setSection('history')}
-                          className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-                        >
-                          View all →
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            data-testid="csv-download-recent-analyses"
+                            onClick={() => {
+                              const dateStamp = new Date().toISOString().slice(0, 10);
+                              const filename = `chartledger-recent-analyses-${dateStamp}.csv`;
+                              const csv = buildRecentAnalysesCsv(analyses);
+                              triggerCsvDownload(csv, filename);
+                              setAnalysesExportNotice(`Exported ${filename}`);
+                            }}
+                            disabled={analyses.length === 0}
+                            aria-label="Download Recent Chart Analyses as CSV"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                          >
+                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                            Download as CSV
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="refresh-widget-recent-analyses"
+                            onClick={() => void refreshRecentAnalysesWidget()}
+                            disabled={refreshingAnalyses}
+                            aria-label="Refresh recent chart analyses"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                          >
+                            <RefreshCw
+                              className={`h-3.5 w-3.5 ${refreshingAnalyses ? 'animate-spin' : ''}`}
+                              aria-hidden="true"
+                            />
+                            Refresh
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSection('history')}
+                            className="ml-1 text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                          >
+                            View all →
+                          </button>
+                        </div>
                       </div>
+                      {analysesExportNotice && (
+                        <p
+                          role="status"
+                          className="mb-2.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                        >
+                          {analysesExportNotice}
+                        </p>
+                      )}
                       {analyses.length === 0 ? (
                         <div className="py-10 text-center text-xs text-zinc-500">
                           <BarChart3 className="mx-auto mb-2 h-6 w-6 text-zinc-400" />
@@ -564,7 +760,7 @@ export function WorkspaceShell({ onGoPublicHome }: WorkspaceShellProps) {
                           ))}
                         </div>
                       )}
-                    </div>
+                    </section>
                   );
                 }
 

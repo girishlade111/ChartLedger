@@ -150,7 +150,8 @@ export function normalizeTimeframe(raw?: string | null): string {
 
 export async function fetchCryptoMarketData(
   rawSymbol: string,
-  rawTimeframe?: string | null
+  rawTimeframe?: string | null,
+  bypassCache = false
 ): Promise<MarketDataResult | null> {
   const normalized = normalizeCryptoSymbol(rawSymbol);
   if (!normalized) return null;
@@ -158,7 +159,7 @@ export async function fetchCryptoMarketData(
   const interval = normalizeTimeframe(rawTimeframe);
   const cacheKey = `${normalized}:${interval}`;
   const cached = cache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!bypassCache && cached && cached.expiresAt > Date.now()) {
     return cached.data;
   }
 

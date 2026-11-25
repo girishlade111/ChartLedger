@@ -578,7 +578,24 @@ test('Full-stack API, Security, Tenant Isolation, RAG, SSE & Billing Integration
     assert.equal(meB.status, 200);
     assert.equal(meB.data.preferencesJson.dashboardWidgetOrder, undefined);
   });
+
+  await t.test('17. Manual widget refresh (?fresh=1) re-fetches live portfolio summary and market sentiment', async () => {
+    const freshSummary = await reqJson('/api/portfolio/summary?range=30&fresh=1', {
+      token: tokenA,
+    });
+    assert.equal(freshSummary.status, 200);
+    assert.ok(typeof freshSummary.data.fetchedAt === 'string');
+    assert.ok(freshSummary.data.summary.holdingCount >= 1);
+
+    const freshSentiment = await reqJson('/api/portfolio/sentiment?timeframe=4h&fresh=1', {
+      token: tokenA,
+    });
+    assert.equal(freshSentiment.status, 200);
+    assert.ok(typeof freshSentiment.data.fetchedAt === 'string');
+    assert.equal(freshSentiment.data.timeframe, '4h');
+  });
 });
+
 
 
 
